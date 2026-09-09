@@ -1,0 +1,1 @@
+fetch('api/legal').then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{document.getElementById('operator').textContent=[d.name,d.address,d.email,d.additional].filter(Boolean).join('\n')}).catch(()=>{document.getElementById('operator').textContent='Betreiberangaben nicht verfügbar / Operator information unavailable'});

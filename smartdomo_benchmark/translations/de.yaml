@@ -1,0 +1,36 @@
+configuration:
+  allow_full_benchmark:
+    name: Full-Benchmark erlauben
+    description: >-
+      Schaltet das intensive Full-Profil frei. Nur auf Testsystemen verwenden;
+      Light erzeugt deutlich weniger und Full erheblich mehr Last sowie temporäre Schreibdaten.
+  device_name:
+    name: Lokaler Gerätename (optional)
+    description: >-
+      Frei wählbare Bezeichnung für die lokale Ergebnisanzeige und Exporte. Dieser Wert wird
+      bei Share & Compare niemals übertragen; dort wird ein separates öffentliches Gerätemodell abgefragt.
+  cpu_model:
+    name: Prozessormodell (optional)
+    description: >-
+      Manuelle Angabe, falls Home Assistant das CPU-Modell nicht erkennt, zum Beispiel RK3566.
+      Diese Angabe wird beim Teilen veröffentlicht.
+  storage_type:
+    name: Speicherart
+    description: >-
+      Medium des Home-Assistant-Datenlaufwerks: unbekannt, SD-Karte, eMMC, SATA-SSD,
+      NVMe-SSD oder virtuell. Wichtig für die Einordnung des Recorder-Speichertests.
+  storage_size_gb:
+    name: Speichergröße in GB
+    description: >-
+      Nominelle Gesamtkapazität des Home-Assistant-Datenlaufwerks. 0 bedeutet unbekannt.
+      Die Angabe wird beim Teilen veröffentlicht.
+  temperature_entity:
+    name: Temperatur-Entität (optional)
+    description: >-
+      Entity-ID eines HA-Temperatursensors, zum Beispiel sensor.cpu_temperature.
+      Leer lassen, um zuerst verfügbare Linux-Sysfs-Sensoren zu verwenden. Diagnosewert mit 0 % Gewicht.
+  power_entity:
+    name: Leistungs-Entität (optional)
+    description: >-
+      Entity-ID eines Leistungssensors in Watt, idealerweise von einer Messsteckdose.
+      Der Benchmark tastet ihn während des Laufs ab; der Wert hat 0 % Gewicht im Index.

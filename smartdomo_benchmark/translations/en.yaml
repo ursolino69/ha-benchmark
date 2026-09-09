@@ -1,0 +1,36 @@
+configuration:
+  allow_full_benchmark:
+    name: Enable Full benchmark
+    description: >-
+      Unlocks the intensive Full profile. Use it only on test systems; Light creates substantially
+      less load and Full creates much more load and temporary write data.
+  device_name:
+    name: Local device name (optional)
+    description: >-
+      A free-form label for local results and exports. Share & Compare never uploads this value;
+      it asks for a separate public device model before publication.
+  cpu_model:
+    name: Processor model (optional)
+    description: >-
+      Manual value if Home Assistant cannot identify the processor, for example RK3566.
+      This value is public when sharing.
+  storage_type:
+    name: Storage type
+    description: >-
+      Medium used by the Home Assistant data drive: unknown, SD card, eMMC, SATA SSD,
+      NVMe SSD or virtual. Important context for the Recorder storage test.
+  storage_size_gb:
+    name: Storage size in GB
+    description: >-
+      Nominal total capacity of the Home Assistant data drive. Use 0 for unknown.
+      This value is public when sharing.
+  temperature_entity:
+    name: Temperature entity (optional)
+    description: >-
+      Entity ID of a HA temperature sensor, for example sensor.cpu_temperature.
+      Leave empty to try available Linux sysfs sensors first. Diagnostic only, with 0% index weight.
+  power_entity:
+    name: Power entity (optional)
+    description: >-
+      Entity ID of a power sensor in watts, ideally from a metering plug.
+      The benchmark samples it during a run; it has 0% weight in the index.

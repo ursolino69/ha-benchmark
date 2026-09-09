@@ -1,0 +1,111 @@
+# HA Benchmark 0.5.0
+
+## Deutsch
+
+### Zweck und Sicherheit
+
+HA Benchmark misst sieben definierte Home-Assistant-Workloads und setzt jeden Messbereich sowie
+den Gesamtwert relativ zu Home Assistant Green auf den Index 100. Die Werte sind Vergleichswerte,
+keine Garantie für die Geschwindigkeit jeder realen Installation.
+
+**Light** ist für einen kontrollierten Lauf auf einem Produktivsystem gedacht. Auch Light erzeugt
+kurzzeitig Last und temporäre Schreibdaten. Nicht während Backups, Updates, Recorder-Bereinigung
+oder hoher Automationslast starten. **Full** erzeugt erheblich mehr Last und darf nur auf
+Testgeräten verwendet werden; es muss in der App-Konfiguration ausdrücklich freigeschaltet sein.
+
+Für einen guten Community-Wert das System zunächst in den Leerlauf bringen, drei identische Läufe
+durchführen und alle drei gemeinsam teilen. Ein Dreier-Eintrag erhält ein Qualitäts-Symbol und nutzt
+den Median. Das bedeutet höhere Wiederholbarkeit, aber keine unabhängige Verifizierung.
+
+### Ergebnis verstehen
+
+Jede Kachel zeigt ihren Anteil am Gesamtindex und öffnet per Klick eine Erklärung, typische
+Anwendungsfälle sowie Rohwerte. Höher ist beim Index immer besser. Der Gesamtindex ist das
+gewichtete geometrische Mittel aus:
+
+| Kategorie | Anteil |
+|---|---:|
+| Core Events | 20 % |
+| State Changes | 20 % |
+| Entity-Filter | 10 % |
+| Entity-ID-Prüfung | 5 % |
+| JSON States | 15 % |
+| Recorder-Speicher | 20 % |
+| API-Latenz | 10 % |
+
+Temperatur, Leistung, Energie und Linux-PSI sind Diagnosewerte mit **0 %** Gewicht. Die
+Temperatur- und Energiekacheln erklären Messquelle und Grenzen ebenfalls per Klick. Die vollständige,
+zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R3** verlinkt.
+
+### Konfiguration
+
+- **Full-Benchmark erlauben:** Schutzschalter für das intensive Profil.
+- **Lokaler Gerätename:** erscheint nur lokal und in lokalen Exporten; er wird nie geteilt.
+- **Prozessormodell:** manuelle Ergänzung, wenn HAOS es nicht erkennt.
+- **Speicherart/-größe:** Kontext zum getesteten App-Datenlaufwerk; `0` bedeutet unbekannt.
+- **Temperatur-Entität:** optionaler Sensor, z. B. `sensor.cpu_temperature`. Ohne Eintrag versucht
+  die App Linux-Sysfs. Nicht jede Plattform gibt diesen Wert an den Container weiter.
+- **Leistungs-Entität:** optionaler Sensor in W oder kW, idealerweise eine Messsteckdose am Netzteil.
+
+### Share & Compare
+
+Im Verlauf genau einen oder drei Läufe derselben Version, desselben Profils und Systems markieren,
+**Share & Compare** öffnen, ein öffentliches Gerätemodell sowie optional einen Alias eintragen und
+die Datenvorschau prüfen. Erst die abschließende Zustimmung sendet die angezeigten Daten an
+`https://benchmark.smartdomo.de`.
+
+Nicht übertragen werden der lokale Gerätename, Hostname, IP-Adresse, Entity-IDs, Tokens,
+Konfigurationen oder andere HA-Zustände. Temperatur und Energie werden nur bei aktivierter Option
+mitgesendet. Die Veröffentlichung erscheint sofort und kann nachträglich moderiert werden.
+
+Nach dem Teilen wird ein privater Löschschlüssel einmal angezeigt und zusätzlich im App-Datenspeicher
+gesichert. Den Schlüssel herunterladen und getrennt vom öffentlichen Link verwahren. Ohne Konto und
+ohne diesen Schlüssel kann eine selbstständige Löschung nicht autorisiert werden.
+
+### Protokoll und Fehlerbehebung
+
+Das App-Protokoll nennt Start, Profil, Fortschritt, Abschlussindex, Laufzeit, fehlgeschlagene Kategorie,
+Abbruch und Veröffentlichung-ID. Es protokolliert keine Löschschlüssel, Sensorzustände oder
+HTTP-Anfragepfade. Bei Problemen unter **Einstellungen → Apps → HA Benchmark → Protokoll** nachsehen.
+
+- **Full bleibt deaktiviert:** Schutzschalter speichern und App neu starten.
+- **Temperatur nicht verfügbar:** HAOS gibt den Sensor nicht frei; Temperatur-Entität konfigurieren.
+- **Energie nicht verfügbar:** Leistungssensor muss einen numerischen Wert in W oder kW liefern.
+- **Teilen nicht möglich:** Internetzugang/DNS des HA-Systems sowie identische Laufdaten prüfen.
+- **Messung streut:** Hintergrundlast entfernen, Gerät abkühlen lassen und drei Läufe verwenden.
+
+## English
+
+### Purpose and safety
+
+HA Benchmark measures seven defined Home Assistant workloads. Every category and the overall result
+use Home Assistant Green as index 100. These are comparative measurements, not a promise about every
+real installation.
+
+**Light** is intended for a controlled run on a production system, but still creates temporary load
+and writes. Avoid backups, updates, recorder maintenance and busy automation periods. **Full** creates
+substantially more load, is for test devices only and requires explicit enablement in configuration.
+
+For a higher-quality community result, let the system idle and share three identical runs together.
+The entry receives a repeated-run badge and uses the median. It is more repeatable, not independently
+verified.
+
+Each result tile shows its overall weight and opens an explanation, use cases and raw values on click.
+Higher indices are always better. The weights are Core Events 20%, State Changes 20%, entity filters
+10%, entity ID validation 5%, JSON States 15%, Recorder storage 20%, and API latency 10%.
+Temperature, power, energy and Linux PSI are diagnostic values with 0% weight. Open **Methodology R3**
+at the top right for the complete bilingual method, formulas and limitations.
+
+The configuration labels explain the Full safety switch, local-only device name, optional CPU model,
+storage type and size, and optional temperature/power entities. Without a temperature entity the app
+tries Linux sysfs first; not every device exposes it to the container. A power entity must report W or
+kW and is best sourced from a metering plug at the power supply.
+
+For **Share & Compare**, select exactly one or three compatible history entries, enter a public device
+model and optional alias, then inspect the preview. Nothing is transmitted until final consent. Local
+device names, hostnames, IPs, entity IDs, tokens, configuration and HA states are excluded. Environment
+values are optional. Publication is immediate and subject to later moderation.
+
+The private deletion key is displayed once and also retained in app storage. Download it and keep it
+separate from the public link. The log records benchmark lifecycle and publication IDs, but never
+deletion keys, sensor states or HTTP request paths. Find it under **Settings → Apps → HA Benchmark → Log**.
