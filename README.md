@@ -1,6 +1,6 @@
 # HA Benchmark
 
-Home-Assistant-specific Light and Full benchmark with Green = 100 category indices, transparent R3
+Home-Assistant-specific Light and Full benchmark with Nabu Casa's Home Assistant Green = 100 category indices, transparent R3
 methodology, bilingual UI and opt-in Share & Compare at `benchmark.smartdomo.de`.
 
 ## Home Assistant installation
