@@ -7,7 +7,7 @@ methodology, bilingual UI and opt-in Share & Compare at `benchmark.smartdomo.de`
 
 1. Publish this repository at a reachable Git URL.
 2. In Home Assistant open **Settings → Apps → App Store → Repositories**.
-3. Add the repository URL, install **HA Benchmark**, then open it from the sidebar.
+3. Add the repository URL "https://github.com/ursolino69/ha-benchmark", install **HA Benchmark**, then open it from the sidebar.
 
 For local development copy `smartdomo_benchmark` to `/addons/`. Light may be used for controlled
 production measurements; Full is restricted to test devices and needs `allow_full_benchmark: true`.
