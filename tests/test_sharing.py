@@ -8,6 +8,7 @@ APP = Path(__file__).parents[1] / "smartdomo_benchmark" / "app"
 sys.path.insert(0, str(APP))
 import benchmark
 import scoring_r3
+import scoring_r4
 import sharing
 import device_types
 
@@ -41,6 +42,23 @@ def run(number=1, multiplier=1.0):
     }
 
 
+def r4_run(number=1, multiplier=1.0, candidate=False):
+    references = scoring_r4.GREEN_REFERENCES["light"]
+    tests = {}
+    for key, value in references.items():
+        tests[key] = ({name: raw * multiplier for name, raw in value.items()}
+                      if key == "sqlite" else {"value": value * multiplier})
+    result = run(number, multiplier)
+    result.update(benchmark_version="0.7.0" if candidate else "0.8.0",
+                  methodology_id=scoring_r4.METHODOLOGY_ID,
+                  engine_core_version=scoring_r4.ENGINE_CORE_VERSION,
+                  reference=scoring_r4.CALIBRATION, tests=tests)
+    if candidate:
+        result.pop("reference")
+        result["calibration_status"] = "pending"
+    return result
+
+
 class SharingTests(unittest.TestCase):
     def test_private_fields_are_removed(self):
         payload = sharing.make_payload([run()], "Alias", "Home Assistant Green", True)
@@ -55,6 +73,23 @@ class SharingTests(unittest.TestCase):
         summary = sharing.summarize(payload)
         self.assertEqual(summary["index"], 100)
         self.assertTrue(all(value == 100 for value in summary["indices"].values()))
+
+    def test_r4_green_reference_summarizes_to_100(self):
+        payload = sharing.make_payload([r4_run()], "", "Home Assistant Green")
+        summary = sharing.summarize(payload)
+        self.assertEqual(summary["index"], 100)
+        self.assertEqual(summary["calibration"], "GREEN-CORE-2026-09-D")
+
+    def test_r4_candidate_raw_run_is_recalibrated(self):
+        payload = sharing.make_payload([r4_run(candidate=True)], "", "Home Assistant Green")
+        self.assertEqual(payload["runs"][0]["reference"]["calibration"], "GREEN-CORE-2026-09-D")
+        self.assertEqual(sharing.summarize(payload)["index"], 100)
+
+    def test_wrong_r4_calibration_is_rejected(self):
+        bad = r4_run()
+        bad["reference"] = dict(bad["reference"], calibration="WRONG")
+        with self.assertRaises(ValueError):
+            sharing.make_payload([bad], "", "Green")
 
     def test_three_run_overall_is_median(self):
         runs = [run(1, .9), run(2, 1), run(3, 1.1)]

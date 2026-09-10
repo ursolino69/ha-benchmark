@@ -9,8 +9,8 @@ import sqlite3
 import time
 from pathlib import Path
 from urllib.parse import parse_qs
-from sharing import make_payload, summarize, fingerprint, COMMUNITY
-from scoring_r3 import METHODOLOGY_ID, CALIBRATION
+from sharing import (CONTRACTS, CURRENT_CONTRACT, COMMUNITY, contract_for_methodology,
+                     fingerprint, make_payload, summarize)
 from device_types import DEVICE_TYPES, infer_device_type, valid_device_type
 
 DATA = Path(os.environ.get('BENCHMARK_DATA', '/var/lib/ha-benchmark'))
@@ -145,8 +145,17 @@ def application(env, start_response):
         if method == 'GET' and path == '/api/health':
             with db() as conn:
                 conn.execute('SELECT 1 FROM entries LIMIT 1').fetchone()
-            result = {'ok': True, 'version': '0.7.0', 'methodology_id': METHODOLOGY_ID,
-                      'calibration': CALIBRATION['calibration']}
+            result = {
+                'ok': True, 'version': '0.8.0',
+                'methodology_id': CURRENT_CONTRACT.METHODOLOGY_ID,
+                'calibration': CURRENT_CONTRACT.CALIBRATION['calibration'],
+                'methodologies': [
+                    {'id': contract.METHODOLOGY_ID,
+                     'calibration': contract.CALIBRATION['calibration'],
+                     'current': contract is CURRENT_CONTRACT}
+                    for contract in CONTRACTS.values()
+                ],
+            }
         elif method == 'POST' and path == '/api/entries':
             if body.get('consent') is not True:
                 raise ValueError('Publication consent required / Zustimmung erforderlich')
@@ -172,10 +181,13 @@ def application(env, start_response):
             profile = query.get('profile', ['light'])[0]
             if profile not in ('light', 'full'):
                 raise ValueError('Invalid profile')
+            methodology = query.get('methodology', [CURRENT_CONTRACT.METHODOLOGY_ID])[0]
+            contract = contract_for_methodology(methodology)
             clauses = ['(? OR hidden=0)', 'json_extract(summary,\'$.profile\')=?',
                        'json_extract(summary,\'$.methodology_id\')=?',
                        'json_extract(summary,\'$.calibration\')=?']
-            parameters = [int(admin), profile, METHODOLOGY_ID, CALIBRATION['calibration']]
+            parameters = [int(admin), profile, contract.METHODOLOGY_ID,
+                          contract.CALIBRATION['calibration']]
             device_type = query.get('device_type', [''])[0]
             storage = query.get('storage', [''])[0]
             core = query.get('core', [''])[0][:30]
@@ -203,7 +215,15 @@ def application(env, start_response):
                 total = conn.execute('SELECT count(*) FROM entries WHERE ' + where, parameters).fetchone()[0]
                 rows = conn.execute('SELECT * FROM entries WHERE ' + where + ' ORDER BY CAST(json_extract(summary,\'$.index\') AS REAL) DESC,created DESC LIMIT 100 OFFSET ?', parameters + [offset]).fetchall()
             result = {'entries': [dict(public_entry(r), **({'hidden': bool(r['hidden'])} if admin else {})) for r in rows],
-                      'offset': offset, 'total': total, 'device_types': DEVICE_TYPES}
+                      'offset': offset, 'total': total, 'device_types': DEVICE_TYPES,
+                      'methodology_id': contract.METHODOLOGY_ID,
+                      'calibration': contract.CALIBRATION['calibration'],
+                      'methodologies': [
+                          {'id': item.METHODOLOGY_ID,
+                           'calibration': item.CALIBRATION['calibration'],
+                           'current': item is CURRENT_CONTRACT}
+                          for item in CONTRACTS.values()
+                      ]}
         elif method == 'GET' and path.startswith('/api/entries/'):
             with db() as conn:
                 row = conn.execute('SELECT * FROM entries WHERE id=? AND hidden=0', (path.split('/')[-1],)).fetchone()

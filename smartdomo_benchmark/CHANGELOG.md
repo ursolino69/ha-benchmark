@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0
+
+- Methodik R4 mit fünf Light- und fünf Full-Läufen auf Home Assistant Green kalibriert
+- Neue Referenz `GREEN-CORE-2026-09-D` auf Core 2026.9.1, HAOS 18.2 und Supervisor 2026.09.0
+- Alle Kategorieindizes und der Smartdomo Index wieder aktiviert; Green entspricht je Profil 100
+- R4-Veröffentlichung und -Rangliste aktiviert; R3 bleibt als strikt getrennte Archivansicht erhalten
+- Vorhandene lokale R4-Kandidatenläufe aus 0.7.0 werden anhand ihrer Rohwerte nachkalibriert
+- Kalibrierungsdatensatz, Mediane, Streuung und Grenzen in einem separaten Bericht dokumentiert
+
 ## 0.7.0
 
 - Methodik R4 mit wechselnden Events, Zuständen und Attributen über realistischere Entity-Bestände

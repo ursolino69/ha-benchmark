@@ -12,7 +12,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from benchmark import Cancelled, VERSION, run_benchmark, system_info
+from benchmark import (CALIBRATION, ENGINE_CORE_VERSION, METHODOLOGY_ID, WEIGHTS, Cancelled,
+                       VERSION, calculate_indices, run_benchmark, system_info)
 from device_types import DEVICE_TYPES, STORAGE_LABELS, valid_device_type
 from sharing import COMMUNITY, make_payload
 
@@ -57,7 +58,16 @@ def community_post(payload):
 
 def load_results():
     try:
-        return json.loads(RESULTS.read_text())
+        results = json.loads(RESULTS.read_text())
+        for result in results:
+            if (result.get('methodology_id') == METHODOLOGY_ID
+                    and result.get('engine_core_version') == ENGINE_CORE_VERSION
+                    and result.get('profile') in ('light', 'full')
+                    and all(key in result.get('tests', {}) for key in WEIGHTS)):
+                indices, overall = calculate_indices(result['profile'], result.get('tests', {}))
+                result.update(indices=indices, index=overall, score=overall,
+                              calibration_status='calibrated', reference=CALIBRATION)
+        return results
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
@@ -296,6 +306,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    LOG.info('HA Benchmark %s starting; R4 calibration pending; R3 community upload remains available', VERSION)
+    LOG.info('HA Benchmark %s starting; R4 calibration=%s; R3 archive remains available',
+             VERSION, CALIBRATION['calibration'])
     DATA.mkdir(exist_ok=True)
     ThreadingHTTPServer(("0.0.0.0", 8099), Handler).serve_forever()

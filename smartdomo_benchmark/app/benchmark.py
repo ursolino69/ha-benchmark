@@ -22,7 +22,7 @@ from typing import Callable
 
 from device_types import infer_device_type
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 ENGINE_CORE_VERSION = "2026.9.1"
 METHODOLOGY_ID = "CORE-2026.9.1-R4"
 API = "http://supervisor/core/api"
@@ -73,20 +73,34 @@ STORAGE_WEIGHTS = {
     "checkpoint_ms": .15,
 }
 
-# R4 changes the workloads and therefore starts without inherited R3 scores.
-# Populate this only after repeatable Green Light and Full calibration series.
-GREEN_REFERENCES: dict[str, dict] = {}
+# R4 reference medians from five controlled Green runs per profile.
+GREEN_REFERENCES: dict[str, dict] = {
+    "light": {
+        "core_events": 33_726.0, "state_changes": 9_842.0,
+        "entity_processing": 151_190.0, "json_states": 11_227.0,
+        "sqlite": {"write_mib_s": 11.53, "commit_p95_ms": 4.084,
+                   "random_read_p95_ms": 0.4054, "checkpoint_ms": 161.22},
+        "api_latency": 18.59, "parallel_workload": 22_943.0,
+    },
+    "full": {
+        "core_events": 34_552.0, "state_changes": 8_900.0,
+        "entity_processing": 79_225.0, "json_states": 9_775.0,
+        "sqlite": {"write_mib_s": 10.65, "commit_p95_ms": 5.381,
+                   "random_read_p95_ms": 0.3217, "checkpoint_ms": 1_648.02},
+        "api_latency": 18.88, "parallel_workload": 37_245.0,
+    },
+}
 CALIBRATION = {
     "device": "Home Assistant Green",
     "index": 100,
-    "calibration": "PENDING-GREEN-R4",
+    "calibration": "GREEN-CORE-2026-09-D",
     "methodology_id": METHODOLOGY_ID,
     "engine_core": ENGINE_CORE_VERSION,
     "core": "2026.9.1",
     "haos": "18.2",
     "supervisor": "2026.09.0",
-    "sample_size": {"light": 0, "full": 0},
-    "status": "pending",
+    "sample_size": {"light": 5, "full": 5},
+    "status": "calibrated",
 }
 
 

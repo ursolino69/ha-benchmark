@@ -1,11 +1,11 @@
-# Benchmark-Methodik R4 · App-Version 0.7.0
+# Benchmark-Methodik R4 · App-Version 0.8.0
 
 ## Status
 
-R4 ist wegen grundlegend veränderter Arbeitslasten nicht mit R3 vergleichbar. Bis neue stabile
-Green-Referenzserien für Light und Full vorliegen, zeigt Version 0.7.0 ausschließlich Rohwerte.
-R3-Referenzen werden nicht übernommen oder mathematisch umgerechnet. Die öffentliche Rangliste
-bleibt deshalb vorerst auf R3; deren vollständige Beschreibung liegt in
+R4 ist mit fünf kontrollierten Home-Assistant-Green-Läufen je Profil kalibriert. Die Referenz
+`GREEN-CORE-2026-09-D` verwendet die Mediane der Rohmetriken. R4 ist wegen grundlegend veränderter
+Arbeitslasten nicht mit R3 vergleichbar; R3-Referenzen wurden weder übernommen noch umgerechnet.
+Rangliste und Vergleich trennen beide Methoden strikt. Die vorherige Beschreibung liegt in
 [`METHODOLOGY-R3.md`](METHODOLOGY-R3.md).
 
 ## Ziel und Abgrenzung
@@ -21,7 +21,7 @@ Gegenüber R3 wurden vier Verzerrungen korrigiert:
 - Entity-Prüfungen verwenden 80 % wiederkehrende und 20 % neue IDs statt nahezu reiner Cache-Treffer.
 - Eine getrennte Prozesslast macht verfügbare Mehrkern-Kapazität sichtbar.
 
-## Kategorien und vorgesehene Gewichtung
+## Kategorien und Gewichtung
 
 | Kategorie | Anteil | R4-Arbeitslast |
 |---|---:|---|
@@ -33,7 +33,7 @@ Gegenüber R3 wurden vier Verzerrungen korrigiert:
 | HA API | 10 % | Mediane Antwortzeit der laufenden REST-API |
 | Parallele Core-Last | 20 % | Gleichzeitige State-Erzeugung/-Serialisierung in getrennten Prozessen |
 
-Die Gewichte werden erst nach der Green-Kalibrierung für die Indexberechnung verwendet. Danach gilt:
+Für die Indexberechnung gilt:
 
 - Durchsatzindex = `100 × Messwert / Green-Referenz`
 - Latenzindex = `100 × Green-Referenz / Messwert`
@@ -95,8 +95,7 @@ keine Auslastungsanzeige.
 
 ## Kalibrierungsprotokoll
 
-Für jede Profilreferenz sind mindestens fünf, vorgesehen sieben Green-Läufe unter kontrollierten
-Bedingungen erforderlich. Verwendet wird je Rohmetrik der Median. Vorab werden fehlgeschlagene Läufe,
-abweichende Methodik-/Core-Versionen und dokumentierte Fremdlast ausgeschlossen. Streuung und
-Ausschlüsse werden zusammen mit der finalen Referenz veröffentlicht. Erst dann wird eine neue,
-eindeutige R4-Kalibrierungs-ID vergeben und Share & Compare für R4 aktiviert.
+Die Referenz wurde aus fünf Light- und fünf Full-Läufen auf demselben Home Assistant Green mit Core
+2026.9.1, HAOS 18.2 und Supervisor 2026.09.0 gebildet. Alle zehn gültigen R4-Läufe wurden verwendet;
+es gab keine Ausschlüsse. Je Rohmetrik gilt der Median als Green = 100. Referenzwerte, Lauf-IDs,
+Streuung und Grenzen sind im [R4-Kalibrierungsbericht](CALIBRATION-R4.md) dokumentiert.

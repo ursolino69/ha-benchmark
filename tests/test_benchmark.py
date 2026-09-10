@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "smartdomo_benchmark" / "app"))
 import benchmark
+import scoring_r4
 
 
 class BenchmarkTests(unittest.TestCase):
@@ -27,17 +28,27 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(set(benchmark.WEIGHTS), {key for key, _, _ in benchmark.TESTS})
         self.assertAlmostEqual(sum(benchmark.WEIGHTS.values()), 1.0)
 
-    def test_calibration_candidate_metadata(self):
-        self.assertEqual(benchmark.VERSION, "0.7.0")
+    def test_calibration_metadata(self):
+        self.assertEqual(benchmark.VERSION, "0.8.0")
         self.assertEqual(benchmark.METHODOLOGY_ID, "CORE-2026.9.1-R4")
-        self.assertEqual(benchmark.GREEN_REFERENCES, {})
-        self.assertEqual(benchmark.CALIBRATION["calibration"], "PENDING-GREEN-R4")
-        self.assertEqual(benchmark.CALIBRATION["status"], "pending")
+        self.assertEqual(benchmark.CALIBRATION["calibration"], "GREEN-CORE-2026-09-D")
+        self.assertEqual(benchmark.CALIBRATION["status"], "calibrated")
+        self.assertEqual(benchmark.CALIBRATION["sample_size"], {"light": 5, "full": 5})
 
-    def test_r4_is_unscored_until_green_calibration(self):
-        indices, overall = benchmark.calculate_indices("light", {})
-        self.assertEqual(indices, {})
-        self.assertIsNone(overall)
+    def test_app_and_server_use_identical_frozen_r4_contract(self):
+        self.assertEqual(benchmark.WEIGHTS, scoring_r4.WEIGHTS)
+        self.assertEqual(benchmark.STORAGE_WEIGHTS, scoring_r4.STORAGE_WEIGHTS)
+        self.assertEqual(benchmark.GREEN_REFERENCES, scoring_r4.GREEN_REFERENCES)
+        self.assertEqual(benchmark.CALIBRATION, scoring_r4.CALIBRATION)
+
+    def test_green_references_score_100_for_both_profiles(self):
+        for profile, references in benchmark.GREEN_REFERENCES.items():
+            tests = {}
+            for key, value in references.items():
+                tests[key] = dict(value) if key == "sqlite" else {"value": value}
+            indices, overall = benchmark.calculate_indices(profile, tests)
+            self.assertEqual(overall, 100)
+            self.assertTrue(all(value == 100 for value in indices.values()))
 
     def test_storage_subindices_produce_index_100(self):
         storage = {

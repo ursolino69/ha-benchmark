@@ -6,11 +6,17 @@ import re
 import statistics
 import unicodedata
 from datetime import datetime
-from scoring_r3 import METHODOLOGY_ID, ENGINE_CORE_VERSION, CALIBRATION, WEIGHTS, STORAGE_WEIGHTS, calculate_indices
+import scoring_r3
+import scoring_r4
 from device_types import infer_device_type, valid_device_type
 
 COMMUNITY = 'https://benchmark.smartdomo.de'
-COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0', '0.6.0', '0.6.1')
+CURRENT_CONTRACT = scoring_r4
+CONTRACTS = {
+    scoring_r3.METHODOLOGY_ID: scoring_r3,
+    scoring_r4.METHODOLOGY_ID: scoring_r4,
+}
+COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.8.0')
 SYSTEM_TEXT = ('architecture', 'cpu_model', 'home_assistant', 'operating_system', 'supervisor', 'machine', 'storage_type')
 SYSTEM_NUMBERS = ('logical_cpus', 'memory_total_mib', 'storage_size_gb')
 
@@ -25,12 +31,24 @@ def number(value, minimum=0, maximum=1e12):
         raise ValueError('Invalid measurement / Ungültiger Messwert')
     return value
 
+def contract_for_methodology(methodology_id):
+    contract = CONTRACTS.get(methodology_id)
+    if contract is None:
+        raise ValueError('Incompatible methodology / Inkompatible Methodik')
+    return contract
+
 def public_run(run, include_environment=False, selected_device_type=None, device_model=''):
     if not isinstance(run, dict) or run.get('benchmark_version') not in COMPATIBLE_VERSIONS:
         raise ValueError('Requires a compatible benchmark version / Kompatible Benchmark-Version erforderlich')
-    if run.get('methodology_id') != METHODOLOGY_ID or run.get('engine_core_version') != ENGINE_CORE_VERSION:
+    contract = contract_for_methodology(run.get('methodology_id'))
+    if run.get('engine_core_version') != contract.ENGINE_CORE_VERSION:
         raise ValueError('Incompatible methodology / Inkompatible Methodik')
-    if run.get('reference', {}).get('calibration') != CALIBRATION['calibration']:
+    supplied_calibration = run.get('reference', {}).get('calibration')
+    # R4 candidate 0.7.0 stored raw values before the reference existed. Its
+    # unchanged methodology ID and engine version make those runs scoreable now.
+    pending_r4 = (contract is scoring_r4 and run.get('benchmark_version') == '0.7.0'
+                  and supplied_calibration is None and run.get('calibration_status') == 'pending')
+    if supplied_calibration != contract.CALIBRATION['calibration'] and not pending_r4:
         raise ValueError('Incompatible calibration / Inkompatible Kalibrierung')
     if run.get('profile') not in ('light', 'full'):
         raise ValueError('Invalid profile / Ungültiges Profil')
@@ -49,18 +67,18 @@ def public_run(run, include_environment=False, selected_device_type=None, device
         raise ValueError('Select a device type / Gerätetyp auswählen')
     public_system['device_type'] = resolution['device_type']
     tests = {}
-    for key in WEIGHTS:
+    for key in contract.WEIGHTS:
         source = run.get('tests', {}).get(key, {})
         if source.get('error'):
             raise ValueError('Failed test cannot be shared / Fehlerhafter Test nicht teilbar')
-        fields = STORAGE_WEIGHTS if key == 'sqlite' else ('value',)
+        fields = contract.STORAGE_WEIGHTS if key == 'sqlite' else ('value',)
         tests[key] = {field: number(source.get(field), 1e-9) for field in fields}
     stamp = clean_text(run.get('finished_at', ''), 40)
     parsed = datetime.fromisoformat(stamp)
     if parsed.tzinfo is None:
         raise ValueError('Timestamp needs timezone')
-    result = dict(result_id=rid, benchmark_version=run['benchmark_version'], methodology_id=METHODOLOGY_ID,
-                  engine_core_version=ENGINE_CORE_VERSION, reference=CALIBRATION, profile=run['profile'],
+    result = dict(result_id=rid, benchmark_version=run['benchmark_version'], methodology_id=contract.METHODOLOGY_ID,
+                  engine_core_version=contract.ENGINE_CORE_VERSION, reference=contract.CALIBRATION, profile=run['profile'],
                   finished_at=stamp, duration_seconds=number(run.get('duration_seconds'), .001, 86400),
                   system=public_system, tests=tests)
     if include_environment:
@@ -90,13 +108,14 @@ def make_payload(runs, alias='', device_model='', include_environment=False, dev
 def summarize(payload):
     runs = payload['runs']
     profile = runs[0]['profile']
+    contract = contract_for_methodology(runs[0]['methodology_id'])
     tests = {}
-    for key in WEIGHTS:
-        fields = STORAGE_WEIGHTS if key == 'sqlite' else ('value',)
+    for key in contract.WEIGHTS:
+        fields = contract.STORAGE_WEIGHTS if key == 'sqlite' else ('value',)
         tests[key] = {field: statistics.median(r['tests'][key][field] for r in runs) for field in fields}
-    indices, score = calculate_indices(profile, tests)
+    indices, score = contract.calculate_indices(profile, tests)
     # Overall for three runs is the median of individual overall scores.
-    scores = [calculate_indices(profile, json.loads(json.dumps(r['tests'])))[1] for r in runs]
+    scores = [contract.calculate_indices(profile, json.loads(json.dumps(r['tests'])))[1] for r in runs]
     environment = {}
     for section, fields in {'temperature': ('start', 'maximum'),
                             'energy': ('average_w', 'peak_w', 'consumption_wh')}.items():
@@ -116,11 +135,11 @@ def summarize(payload):
                         'variable' if len(scores) == 3 else 'single'}
     return dict(profile=profile, indices=indices, index=statistics.median(scores), tests=tests,
                 environment=environment,
-                count=len(runs), calibration=CALIBRATION['calibration'], methodology_id=METHODOLOGY_ID,
-                engine_core_version=ENGINE_CORE_VERSION, benchmark_version=versions[-1],
+                count=len(runs), calibration=contract.CALIBRATION['calibration'], methodology_id=contract.METHODOLOGY_ID,
+                engine_core_version=contract.ENGINE_CORE_VERSION, benchmark_version=versions[-1],
                 benchmark_versions=versions, device_type=payload['device_type'],
                 quality=quality,
-                compatibility_id=f"{METHODOLOGY_ID}:{CALIBRATION['calibration']}:{profile}")
+                compatibility_id=f"{contract.METHODOLOGY_ID}:{contract.CALIBRATION['calibration']}:{profile}")
 
 def fingerprint(payload):
     # Same measurement cannot create another entry merely by changing its ID/date/alias.

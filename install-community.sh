@@ -16,7 +16,7 @@ BACKUP_DIR=/var/backups/ha-benchmark
 SITE_HTTP=/etc/apache2/sites-available/benchmark.smartdomo.de.conf
 SITE_HTTPS=/etc/apache2/sites-available/benchmark.smartdomo.de-le-ssl.conf
 
-for item in "$APP_SOURCE/service.py" "$APP_SOURCE/static/index.html" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/scoring_r3.py" "$BENCH_SOURCE/device_types.py"; do
+for item in "$APP_SOURCE/service.py" "$APP_SOURCE/static/index.html" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/scoring_r3.py" "$BENCH_SOURCE/scoring_r4.py" "$BENCH_SOURCE/device_types.py"; do
   [[ -f "$item" ]] || { echo "Paket unvollständig: $item fehlt" >&2; exit 1; }
 done
 [[ -f /etc/letsencrypt/live/benchmark.smartdomo.de/fullchain.pem ]] || {
@@ -50,7 +50,7 @@ if [[ -d "$INSTALL_DIR/app" ]]; then
   tar -C "$INSTALL_DIR" -czf "$BACKUP_DIR/application-$STAMP.tar.gz" app
 fi
 install -d -o root -g root -m 0755 "$INSTALL_DIR/app/static"
-install -m 0644 "$APP_SOURCE/service.py" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/scoring_r3.py" "$BENCH_SOURCE/device_types.py" "$INSTALL_DIR/app/"
+install -m 0644 "$APP_SOURCE/service.py" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/scoring_r3.py" "$BENCH_SOURCE/scoring_r4.py" "$BENCH_SOURCE/device_types.py" "$INSTALL_DIR/app/"
 for item in index.html ui.js style.css methodology.html methodology.js brand.png benchmark.svg favicon.svg; do
   install -m 0644 "$BENCH_SOURCE/$item" "$INSTALL_DIR/app/static/"
 done
