@@ -18,7 +18,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable
 
-VERSION = "0.5.0"
+from device_types import infer_device_type
+
+VERSION = "0.6.0"
 ENGINE_CORE_VERSION = "2026.9.1"
 METHODOLOGY_ID = "CORE-2026.9.1-R3"
 API = "http://supervisor/core/api"
@@ -142,13 +144,36 @@ def pressure_info():
     for resource in ("cpu", "memory", "io"):
         try:
             lines = open(f"/proc/pressure/{resource}").read().splitlines()
-            fields = next(line for line in lines if line.startswith("some ")).split()[1:]
-            result[resource] = {
-                key: float(value) if key != "total" else int(value)
-                for key, value in (field.split("=", 1) for field in fields)
-            }
+            modes = {}
+            for line in lines:
+                mode, *fields = line.split()
+                if mode not in ("some", "full"):
+                    continue
+                modes[mode] = {
+                    key: float(value) if key != "total" else int(value)
+                    for key, value in (field.split("=", 1) for field in fields)
+                }
+            if modes:
+                result[resource] = modes
         except (OSError, StopIteration, ValueError):
             continue
+    return result
+
+
+def pressure_interval(start, end, elapsed):
+    """Calculate stall-time percentages for this run from PSI total counters."""
+    result = {}
+    if elapsed <= 0:
+        return result
+    for resource in ("cpu", "memory", "io"):
+        modes = {}
+        for mode in ("some", "full"):
+            before = start.get(resource, {}).get(mode, {}).get("total")
+            after = end.get(resource, {}).get(mode, {}).get("total")
+            if isinstance(before, int) and isinstance(after, int) and after >= before:
+                modes[mode] = round((after - before) / (elapsed * 1_000_000) * 100, 2)
+        if modes:
+            result[resource] = modes
     return result
 
 
@@ -161,8 +186,27 @@ def system_info():
                 break
     except OSError:
         pass
+    cpu_model = platform.processor()
+    if not cpu_model:
+        try:
+            fields = {}
+            for line in open("/proc/cpuinfo"):
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    fields.setdefault(key.strip().lower(), value.strip())
+            cpu_model = fields.get("model name") or fields.get("model") or fields.get("hardware")
+        except OSError:
+            pass
+    hardware_model = ""
+    for path in ("/sys/class/dmi/id/product_name", "/sys/firmware/devicetree/base/model"):
+        try:
+            hardware_model = open(path, "rb").read(200).replace(b"\x00", b"").decode("utf-8", "replace").strip()
+            if hardware_model:
+                break
+        except OSError:
+            continue
     info = {
-        "architecture": platform.machine(), "cpu_model": platform.processor() or "Unbekannt",
+        "architecture": platform.machine(), "cpu_model": cpu_model or "Unknown",
         "logical_cpus": os.cpu_count(), "memory_total_mib": memory_total,
         "platform": platform.platform(), "benchmark_engine_core": ENGINE_CORE_VERSION,
     }
@@ -181,6 +225,18 @@ def system_info():
         "storage_type": options.get("storage_type", "unknown"),
         "storage_size_gb": options.get("storage_size_gb", 0),
     })
+    if hardware_model:
+        info["hardware_model"] = hardware_model
+    configured_type = options.get("device_type", "auto")
+    if configured_type == "auto":
+        try:
+            configured_type = json.loads(open("/data/device.json").read()).get("device_type", "auto")
+        except (OSError, ValueError, AttributeError):
+            pass
+    resolution = infer_device_type(info, configured_type)
+    info["device_type"] = resolution.get("device_type")
+    info["device_type_confidence"] = resolution.get("confidence")
+    info["device_type_candidates"] = resolution.get("candidates", [])
     return info
 
 
@@ -543,7 +599,7 @@ def calculate_indices(profile_name, tests):
 
 def run_benchmark(profile_name, progress, cancel):
     profile = PROFILES[profile_name]
-    result = {"benchmark_version": VERSION, "methodology_id": METHODOLOGY_ID, "engine_core_version": ENGINE_CORE_VERSION, "profile": profile_name, "started_at": datetime.now(timezone.utc).isoformat(), "system": system_info(), "weights": WEIGHTS, "tests": {}}
+    result = {"schema_version": 2, "benchmark_version": VERSION, "methodology_id": METHODOLOGY_ID, "engine_core_version": ENGINE_CORE_VERSION, "profile": profile_name, "started_at": datetime.now(timezone.utc).isoformat(), "system": system_info(), "weights": WEIGHTS, "tests": {}}
     pressure_start = pressure_info()
     sampler = EnvironmentSampler(cancel)
     sampler.start()
@@ -562,7 +618,12 @@ def run_benchmark(profile_name, progress, cancel):
         result["environment"] = sampler.finish()
         pressure_end = pressure_info()
         if pressure_start or pressure_end:
-            result["environment"]["pressure"] = {"start": pressure_start, "end": pressure_end}
+            elapsed = time.perf_counter() - started
+            result["environment"]["pressure"] = {
+                "start": pressure_start,
+                "end": pressure_end,
+                "interval_percent": pressure_interval(pressure_start, pressure_end, elapsed),
+            }
     indices, overall = calculate_indices(profile_name, result["tests"])
     result.update({"indices": indices, "index": overall, "score": overall, "calibration_status": "pending" if overall is None else "calibrated", "duration_seconds": round(time.perf_counter() - started, 2), "finished_at": datetime.now(timezone.utc).isoformat()})
     if overall is not None and CALIBRATION:

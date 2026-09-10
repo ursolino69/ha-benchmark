@@ -1,13 +1,13 @@
 # HA Benchmark
 
-Home-Assistant-specific Light and Full benchmark with Nabu Casa's Home Assistant Green = 100 category indices, transparent R3
-methodology, bilingual UI and opt-in Share & Compare at `benchmark.smartdomo.de`.
+Home-Assistant-specific Light and Full benchmark with the Green = 100 Smartdomo Index, transparent
+R3 methodology, automatic English/German UI and opt-in Share & Compare at `benchmark.smartdomo.de`.
 
 ## Home Assistant installation
 
 1. Publish this repository at a reachable Git URL.
 2. In Home Assistant open **Settings → Apps → App Store → Repositories**.
-3. Add the repository URL "https://github.com/ursolino69/ha-benchmark", install **HA Benchmark**, then open it from the sidebar.
+3. Add the repository URL, install **HA Benchmark**, then open it from the sidebar.
 
 For local development copy `smartdomo_benchmark` to `/addons/`. Light may be used for controlled
 production measurements; Full is restricted to test devices and needs `allow_full_benchmark: true`.
@@ -32,7 +32,8 @@ daily seven-day SQLite backups and 14-day error-log rotation. See
 
 This repository contains the installable HA app and the optional public comparison service. Results
 stay local unless the user previews the exact public payload and explicitly confirms publication.
-Anonymous publishing supports an optional alias and a private deletion key. One- and three-run entries
-are accepted; three-run medians carry a higher-quality badge but are not presented as verified.
+Anonymous publishing supports an optional alias/model and a private deletion key. A controlled device
+type keeps ranking names consistent. One- and three-run entries are accepted; stable three-run medians
+carry a higher-quality badge but are not presented as independently verified.
 
 License: MIT

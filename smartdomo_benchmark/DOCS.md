@@ -1,4 +1,4 @@
-# HA Benchmark 0.5.0
+# HA Benchmark 0.6.0
 
 ## Deutsch
 
@@ -33,7 +33,12 @@ gewichtete geometrische Mittel aus:
 | Recorder-Speicher | 20 % |
 | API-Latenz | 10 % |
 
-Temperatur, Leistung, Energie und Linux-PSI sind Diagnosewerte mit **0 %** Gewicht. Die
+Temperatur, Leistung, Energie und Linux-PSI sind ausschließlich Diagnoseinformationen und werden
+nicht bewertet. PSI (Pressure Stall Information) zeigt den Zeitanteil, in dem Aufgaben wegen CPU,
+Speicher oder I/O warten mussten; es ist keine Auslastungsanzeige. Nahe 0 % ist unauffällig,
+dauerhaft mehrere Prozent weisen auf Ressourcenkonkurrenz hin. Während des absichtlich belastenden
+Tests ist ein einzelner höherer Wert noch kein Fehler. Es gibt keinen universellen kritischen Wert
+für alle HA-Geräte. Die
 Temperatur- und Energiekacheln erklären Messquelle und Grenzen ebenfalls per Klick. Die vollständige,
 zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R3** verlinkt.
 
@@ -41,6 +46,8 @@ zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R
 
 - **Full-Benchmark erlauben:** Schutzschalter für das intensive Profil.
 - **Lokaler Gerätename:** erscheint nur lokal und in lokalen Exporten; er wird nie geteilt.
+- **Gerätetyp:** `Automatisch` erkennt eindeutige Geräte. Ist die Erkennung unsicher, fragt die App
+  vor dem ersten Lauf einmalig nach. Alternativ kann der Typ hier fest gewählt werden.
 - **Prozessormodell:** manuelle Ergänzung, wenn HAOS es nicht erkennt.
 - **Speicherart/-größe:** Kontext zum getesteten App-Datenlaufwerk; `0` bedeutet unbekannt.
 - **Temperatur-Entität:** optionaler Sensor, z. B. `sensor.cpu_temperature`. Ohne Eintrag versucht
@@ -49,8 +56,8 @@ zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R
 
 ### Share & Compare
 
-Im Verlauf genau einen oder drei Läufe derselben Version, desselben Profils und Systems markieren,
-**Share & Compare** öffnen, ein öffentliches Gerätemodell sowie optional einen Alias eintragen und
+Im Verlauf genau einen oder drei Läufe derselben Methodik, Kalibrierung, desselben Profils und Systems
+markieren, **Share & Compare** öffnen, optional eine Modellbezeichnung und einen Alias eintragen und
 die Datenvorschau prüfen. Erst die abschließende Zustimmung sendet die angezeigten Daten an
 `https://benchmark.smartdomo.de`.
 
@@ -90,19 +97,22 @@ For a higher-quality community result, let the system idle and share three ident
 The entry receives a repeated-run badge and uses the median. It is more repeatable, not independently
 verified.
 
-Each result tile shows its overall weight and opens an explanation, use cases and raw values on click.
+Each result tile shows its overall weight, index and raw value, and opens an explanation and use cases.
 Higher indices are always better. The weights are Core Events 20%, State Changes 20%, entity filters
 10%, entity ID validation 5%, JSON States 15%, Recorder storage 20%, and API latency 10%.
-Temperature, power, energy and Linux PSI are diagnostic values with 0% weight. Open **Methodology R3**
+Temperature, power, energy and Linux PSI are informational and are not scored. PSI (Pressure Stall
+Information) measures time in which tasks were stalled for CPU, memory or I/O; it is not utilization.
+Values near zero are unobtrusive, while sustained values of several percent indicate contention.
+A temporary higher value during the intentional benchmark load is not by itself a fault. Open **Methodology R3**
 at the top right for the complete bilingual method, formulas and limitations.
 
-The configuration labels explain the Full safety switch, local-only device name, optional CPU model,
+The configuration labels explain the Full safety switch, controlled device type, local-only device name, optional CPU model,
 storage type and size, and optional temperature/power entities. Without a temperature entity the app
 tries Linux sysfs first; not every device exposes it to the container. A power entity must report W or
 kW and is best sourced from a metering plug at the power supply.
 
-For **Share & Compare**, select exactly one or three compatible history entries, enter a public device
-model and optional alias, then inspect the preview. Nothing is transmitted until final consent. Local
+For **Share & Compare**, select exactly one or three entries with matching methodology, calibration,
+profile and system, optionally enter a model name and alias, then inspect the preview. Nothing is transmitted until final consent. Local
 device names, hostnames, IPs, entity IDs, tokens, configuration and HA states are excluded. Environment
 values are optional. Publication is immediate and subject to later moderation.
 

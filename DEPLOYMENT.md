@@ -1,11 +1,11 @@
-# Deployment 0.5.0
+# Deployment 0.6.0
 
 ## 1. Community service on the prepared VPS
 
 On Windows, place the release ZIP in the current PowerShell directory and upload it:
 
 ```powershell
-scp .\smartdomo-ha-benchmark-v0.5.0.zip root@217.154.22.176:/root/
+scp .\smartdomo-ha-benchmark-v0.6.0.zip root@217.154.22.176:/root/
 ssh root@217.154.22.176
 ```
 
@@ -13,14 +13,13 @@ Then run on the VPS:
 
 ```bash
 apt-get update && apt-get install -y unzip
-mkdir -p /root/ha-benchmark-0.5.0
-unzip -q /root/smartdomo-ha-benchmark-v0.5.0.zip -d /root/ha-benchmark-0.5.0
-bash /root/ha-benchmark-0.5.0/smartdomo-ha-benchmark/install-community.sh
+mkdir -p /root/ha-benchmark-0.6.0
+unzip -q -o /root/smartdomo-ha-benchmark-v0.6.0.zip -d /root/ha-benchmark-0.6.0
+bash /root/ha-benchmark-0.6.0/smartdomo-ha-benchmark/install-community.sh
 ```
 
-The installer asks for the operator/company name, complete service address and contact email. These
-values are required for the public privacy/legal page. It then prints the private moderation key.
-Save that key in a password manager; do not send it in chat or publish it.
+On the first installation the installer asks for operator/company name, complete service address and
+contact email. Updates preserve these values and the private moderation key.
 
 Validate afterwards:
 
@@ -44,7 +43,7 @@ not edit `000-default.conf`, port 5001, or the existing `/ha-dashboard` mapping.
 
 Publish the repository contents through the existing custom app repository, or copy the complete
 `smartdomo_benchmark` directory into the HAOS local apps/add-ons directory. Refresh the App Store,
-install/update **HA Benchmark 0.5.0**, and restart the app.
+install/update **HA Benchmark 0.6.0**, and restart the app.
 
 Before the first run, review every option on the **Configuration** tab. For a normal Green test,
 select the actual storage type and size. Leave Full disabled on production systems. Temperature and
@@ -56,7 +55,7 @@ power entities are optional and never affect the index.
 2. Open **Methodik R3** and click one result card plus one temperature/energy card.
 3. Run Light three times under comparable idle conditions.
 4. Select all three history entries and open **Share & Compare**.
-5. Enter a public device model, inspect the complete JSON preview, consent and publish.
+5. Verify the controlled device type, optionally enter a model and alias, inspect the complete JSON preview, consent and publish.
 6. Confirm the entry has the 3-run median badge and compare it with another entry.
 7. Download the private deletion key, then test deletion with a disposable publication.
 8. Publish another disposable entry, hide/show it on `/admin.html`, and confirm it disappears/reappears.
@@ -64,5 +63,6 @@ power entities are optional and never affect the index.
 
 ## Important boundary
 
-Version 0.5.0 keeps methodology R3 and calibration C unchanged from 0.4.1, but the ranking separates
-the versions. Community data is user-submitted and plausibility-checked, not hardware-attested.
+Version 0.6.0 keeps methodology R3 and calibration C unchanged from 0.4.1/0.5.0. The ranking groups
+compatible runs by methodology, calibration and profile. Community data is user-submitted and
+plausibility-checked, not hardware-attested.

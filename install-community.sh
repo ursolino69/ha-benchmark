@@ -16,7 +16,7 @@ BACKUP_DIR=/var/backups/ha-benchmark
 SITE_HTTP=/etc/apache2/sites-available/benchmark.smartdomo.de.conf
 SITE_HTTPS=/etc/apache2/sites-available/benchmark.smartdomo.de-le-ssl.conf
 
-for item in "$APP_SOURCE/service.py" "$APP_SOURCE/static/index.html" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/benchmark.py"; do
+for item in "$APP_SOURCE/service.py" "$APP_SOURCE/static/index.html" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/benchmark.py" "$BENCH_SOURCE/device_types.py"; do
   [[ -f "$item" ]] || { echo "Paket unvollständig: $item fehlt" >&2; exit 1; }
 done
 [[ -f /etc/letsencrypt/live/benchmark.smartdomo.de/fullchain.pem ]] || {
@@ -24,14 +24,16 @@ done
   exit 1
 }
 
-echo "Angaben für Datenschutz und Impressum (werden öffentlich angezeigt):"
-read -r -p "Verantwortlicher / Firmenname: " OPERATOR_NAME
-read -r -p "Vollständige ladungsfähige Anschrift: " OPERATOR_ADDRESS
-read -r -p "Kontakt-E-Mail: " OPERATOR_EMAIL
-[[ -n "$OPERATOR_NAME" && -n "$OPERATOR_ADDRESS" && "$OPERATOR_EMAIL" == *@* ]] || {
-  echo "Name, vollständige Anschrift und gültig wirkende E-Mail sind erforderlich." >&2
-  exit 1
-}
+if [[ ! -s "$DATA_DIR/operator.json" ]]; then
+  echo "Angaben für Datenschutz und Impressum (werden öffentlich angezeigt):"
+  read -r -p "Verantwortlicher / Firmenname: " OPERATOR_NAME
+  read -r -p "Vollständige ladungsfähige Anschrift: " OPERATOR_ADDRESS
+  read -r -p "Kontakt-E-Mail: " OPERATOR_EMAIL
+  [[ -n "$OPERATOR_NAME" && -n "$OPERATOR_ADDRESS" && "$OPERATOR_EMAIL" == *@* ]] || {
+    echo "Name, vollständige Anschrift und gültig wirkende E-Mail sind erforderlich." >&2
+    exit 1
+  }
+fi
 
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv sqlite3
@@ -48,8 +50,13 @@ if [[ -d "$INSTALL_DIR/app" ]]; then
   tar -C "$INSTALL_DIR" -czf "$BACKUP_DIR/application-$STAMP.tar.gz" app
 fi
 install -d -o root -g root -m 0755 "$INSTALL_DIR/app/static"
-install -m 0644 "$APP_SOURCE/service.py" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/benchmark.py" "$INSTALL_DIR/app/"
-install -m 0644 "$APP_SOURCE/static/"* "$INSTALL_DIR/app/static/"
+install -m 0644 "$APP_SOURCE/service.py" "$BENCH_SOURCE/sharing.py" "$BENCH_SOURCE/benchmark.py" "$BENCH_SOURCE/device_types.py" "$INSTALL_DIR/app/"
+for item in index.html ui.js style.css methodology.html methodology.js brand.png benchmark.svg favicon.svg; do
+  install -m 0644 "$BENCH_SOURCE/$item" "$INSTALL_DIR/app/static/"
+done
+for item in index.html privacy.html privacy.js admin.html admin.js; do
+  install -m 0644 "$APP_SOURCE/static/$item" "$INSTALL_DIR/app/static/"
+done
 
 if [[ ! -x "$INSTALL_DIR/venv/bin/gunicorn" ]]; then
   python3 -m venv "$INSTALL_DIR/venv"
@@ -63,6 +70,7 @@ fi
 chown root:ha-benchmark "$CONFIG_DIR/admin.key"
 chmod 0640 "$CONFIG_DIR/admin.key"
 
+if [[ ! -s "$DATA_DIR/operator.json" ]]; then
 python3 - "$DATA_DIR/operator.json" "$OPERATOR_NAME" "$OPERATOR_ADDRESS" "$OPERATOR_EMAIL" <<'PY'
 import json, os, sys
 path, name, address, email = sys.argv[1:]
@@ -72,7 +80,9 @@ with open(temporary, 'w', encoding='utf-8') as handle:
 os.chmod(temporary, 0o640)
 os.replace(temporary, path)
 PY
+fi
 chown ha-benchmark:ha-benchmark "$DATA_DIR/operator.json"
+chmod 0640 "$DATA_DIR/operator.json"
 
 install -m 0644 /dev/stdin /etc/systemd/system/ha-benchmark-community.service <<'UNIT'
 [Unit]
@@ -130,6 +140,7 @@ install -m 0644 /dev/stdin "$SITE_HTTPS" <<'APACHE'
     ProxyPreserveHost On
     ProxyPass / http://127.0.0.1:5099/ connectiontimeout=5 timeout=30
     ProxyPassReverse / http://127.0.0.1:5099/
+    RequestHeader unset X-Forwarded-For
     RequestHeader set X-Forwarded-Proto "https"
     Header always set Strict-Transport-Security "max-age=31536000"
     Header always set X-Content-Type-Options "nosniff"
@@ -202,11 +213,21 @@ systemctl daemon-reload
 systemctl enable --now ha-benchmark-community.service ha-benchmark-backup.timer
 systemctl reload apache2
 
-curl --fail --silent --show-error http://127.0.0.1:5099/api/health
+HEALTH=
+for ATTEMPT in 1 2 3 4 5 6 7 8 9 10; do
+  if HEALTH=$(curl --fail --silent --show-error http://127.0.0.1:5099/api/health 2>/dev/null); then
+    break
+  fi
+  sleep 1
+done
+[[ -n "$HEALTH" ]] || {
+  echo "Community-Dienst wurde nicht rechtzeitig erreichbar." >&2
+  systemctl status ha-benchmark-community --no-pager -l >&2 || true
+  exit 1
+}
+printf '%s\n' "$HEALTH"
 echo
 curl --fail --silent --show-error https://benchmark.smartdomo.de/api/health
 echo
 echo "Installation abgeschlossen: https://benchmark.smartdomo.de"
-echo "Moderationsschlüssel (geheim halten):"
-cat "$CONFIG_DIR/admin.key"
-echo
+echo "Moderationsschlüssel bleibt unverändert in $CONFIG_DIR/admin.key."

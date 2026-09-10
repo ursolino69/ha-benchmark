@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.0
+
+- Neuer responsiver Hell-/Dunkelmodus nach Browser- oder Home-Assistant-Einstellung
+- Englisch als Standard; Deutsch wird bei deutscher Browser-/HA-Sprache automatisch gewählt
+- Smartdomo Index und Kategorieindizes anklickbar mit Formel, Gewicht, Rohwert und Anwendungsbezug
+- Diagnosebereich kleiner und klar als „nur Information, keine Bewertung“ gekennzeichnet
+- Ausführlichere Einordnung von Temperatur, Leistung, Energie und Linux PSI
+- Kontrollierte kurze Gerätetypen mit konservativer Erkennung und einmaliger Auswahl bei Unklarheit
+- Ranking mit getrennten RAM-/Massenspeicher-Spalten sowie Filtern für Gerät, Speicher, HA Core und Alias
+- Gerätevergleich zeigt Gewichte, Kategorieindex und tatsächlichen Messwert mit Einheit
+- Methodenbasierte Kompatibilität über App-Versionen hinweg und Stabilitätsanzeige für Dreiermessungen
+- Mobile Navigation und Datei-Export für die Home Assistant Companion App robust überarbeitet
+- Neues Benchmark-Symbol für App und Store sowie Favicon für die Community-Seite
+- Atomare lokale Ergebnisspeicherung, gehärtete Rate-Limit-Ermittlung und erweiterte Protokollierung
+
 ## 0.5.0
 
 - Zweisprachige Oberfläche, Dokumentation und verständliche Konfigurationsbeschreibungen

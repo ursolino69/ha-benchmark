@@ -12,7 +12,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from benchmark import Cancelled, run_benchmark, system_info
+from benchmark import Cancelled, VERSION, run_benchmark, system_info
+from device_types import DEVICE_TYPES, STORAGE_LABELS, valid_device_type
 from sharing import COMMUNITY, make_payload
 
 ROOT = Path(__file__).parent
@@ -40,7 +41,7 @@ def shared_records():
 
 def community_post(payload):
     request = urllib.request.Request(COMMUNITY + '/api/entries', data=json.dumps(dict(payload, consent=True)).encode(),
-                                     headers={'Content-Type': 'application/json'}, method='POST')
+                                     headers={'Content-Type': 'application/json', 'User-Agent': f'HA-Benchmark/{VERSION}'}, method='POST')
     try:
         with urllib.request.build_opener(NoRedirect).open(request, timeout=20) as response:
             reply = json.loads(response.read(65536))
@@ -64,7 +65,26 @@ def load_results():
 def save_result(result):
     results = load_results()
     results.insert(0, result)
-    RESULTS.write_text(json.dumps(results[:50], indent=2))
+    temporary = RESULTS.with_suffix('.json.tmp')
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as handle:
+        json.dump(results[:50], handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    temporary.replace(RESULTS)
+
+
+def save_device_type(device_type):
+    if not valid_device_type(device_type):
+        raise ValueError('Invalid device type / Ungültiger Gerätetyp')
+    target = DATA / 'device.json'
+    temporary = DATA / 'device.json.tmp'
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as handle:
+        json.dump({'device_type': device_type}, handle)
+        handle.flush()
+        os.fsync(handle.fileno())
+    temporary.replace(target)
 
 
 def full_allowed():
@@ -125,13 +145,14 @@ class Handler(BaseHTTPRequestHandler):
         elif path.endswith('/api/shared'):
             self.send_json(shared_records())
         elif path.endswith("/api/system"):
-            self.send_json(system_info())
+            self.send_json(dict(system_info(), available_device_types=DEVICE_TYPES,
+                                storage_labels=STORAGE_LABELS))
         elif path.endswith("/api/export.csv"):
             output = io.StringIO()
             writer = csv.writer(output)
             writer.writerow([
                 "result_id", "date", "version", "methodology_id", "engine_core", "profile", "index",
-                "duration_s", "device", "machine", "cpu", "ram_mib", "storage_type", "storage_gb",
+                "duration_s", "device", "device_type", "machine", "cpu", "ram_mib", "storage_type", "storage_gb",
                 "haos", "ha_core", "supervisor", "core_events", "state_changes", "entity_filter",
                 "entity_validation", "json_states", "storage_write_mib_s", "storage_commit_median_ms",
                 "storage_commit_p95_ms", "storage_commit_p99_ms", "storage_random_read_median_ms",
@@ -145,12 +166,13 @@ class Handler(BaseHTTPRequestHandler):
                 s, tests, env = r.get("system", {}), r.get("tests", {}), r.get("environment", {})
                 temp, energy = env.get("temperature", {}), env.get("energy", {})
                 pressure = env.get("pressure", {}).get("end", {})
+                pressure_value = lambda key: pressure.get(key, {}).get("some", pressure.get(key, {})).get("avg10")
                 value = lambda key: tests.get(key, {}).get("value")
                 storage = tests.get("sqlite", {})
                 writer.writerow([
                     r.get("result_id"), r.get("finished_at"), r.get("benchmark_version"),
                     r.get("methodology_id"), r.get("engine_core_version"), r.get("profile"),
-                    r.get("index"), r.get("duration_seconds"), s.get("device_name"), s.get("machine"),
+                    r.get("index"), r.get("duration_seconds"), s.get("device_name"), s.get("device_type"), s.get("machine"),
                     s.get("cpu_model"), s.get("memory_total_mib"), s.get("storage_type"),
                     s.get("storage_size_gb"), s.get("operating_system"), s.get("home_assistant"),
                     s.get("supervisor"), value("core_events"), value("state_changes"),
@@ -164,8 +186,7 @@ class Handler(BaseHTTPRequestHandler):
                     storage.get("peak_temporary_mib"), storage.get("cache_drop_requested"),
                     value("api_latency"), temp.get("start"), temp.get("maximum"),
                     energy.get("average_w"), energy.get("peak_w"), energy.get("consumption_wh"),
-                    pressure.get("cpu", {}).get("avg10"), pressure.get("memory", {}).get("avg10"),
-                    pressure.get("io", {}).get("avg10"),
+                    pressure_value("cpu"), pressure_value("memory"), pressure_value("io"),
                 ])
             raw = output.getvalue().encode()
             self.send_response(200)
@@ -178,12 +199,16 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(load_results())
         else:
             name = path.split('/')[-1]
-            allowed = {'ui.js':'text/javascript', 'style.css':'text/css', 'brand.png':'image/png',
-                       'methodology.html':'text/html', 'methodology.js':'text/javascript'}
+            allowed = {'ui.js':'text/javascript; charset=utf-8', 'style.css':'text/css; charset=utf-8',
+                       'brand.png':'image/png', 'benchmark.svg':'image/svg+xml', 'favicon.svg':'image/svg+xml',
+                       'methodology.html':'text/html; charset=utf-8', 'methodology.js':'text/javascript; charset=utf-8'}
             raw = (ROOT / (name if name in allowed else 'index.html')).read_bytes()
             self.send_response(200)
-            self.send_header("Content-Type", allowed.get(name, 'text/html'))
+            self.send_header("Content-Type", allowed.get(name, 'text/html; charset=utf-8'))
             self.send_header("Content-Length", str(len(raw)))
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Referrer-Policy', 'no-referrer')
+            self.send_header('Cache-Control', 'public, max-age=3600' if name in allowed and not name.endswith('.html') else 'no-store')
             self.end_headers()
             self.wfile.write(raw)
 
@@ -191,6 +216,17 @@ class Handler(BaseHTTPRequestHandler):
         if not self.trusted() or self.headers.get('X-Benchmark-Request') != '1':
             return self.send_json({'error':'Invalid request'}, 403)
         path = urlparse(self.path).path.rstrip("/")
+        if path.endswith('/api/device-type'):
+            try:
+                size = int(self.headers.get('Content-Length', '0'))
+                if not 0 < size <= 1024:
+                    raise ValueError('Invalid request size')
+                body = json.loads(self.rfile.read(size))
+                save_device_type(body.get('device_type'))
+                LOG.info('device_type_selected type=%s', body.get('device_type'))
+                return self.send_json({'saved': True, 'system': system_info()})
+            except (ValueError, TypeError, AttributeError) as exc:
+                return self.send_json({'error': str(exc)}, 400)
         if path.endswith('/api/share-preview') or path.endswith('/api/share'):
             try:
                 size = int(self.headers.get('Content-Length', '0'))
@@ -203,7 +239,8 @@ class Handler(BaseHTTPRequestHandler):
                 saved = {r['result_id']:r for r in load_results()}
                 if any(rid not in saved for rid in ids):
                     raise ValueError('Result not found')
-                payload = make_payload([saved[rid] for rid in ids], body.get('alias',''), body.get('device_model',''), body.get('include_environment') is True)
+                payload = make_payload([saved[rid] for rid in ids], body.get('alias',''), body.get('device_model',''),
+                                       body.get('include_environment') is True, body.get('device_type'))
                 if path.endswith('/api/share-preview'):
                     return self.send_json(payload)
                 if body.get('consent') is not True:
@@ -235,6 +272,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"error": "Unbekanntes Profil"}, 400)
             if profile == "full" and not full_allowed():
                 return self.send_json({"error": "Full-Benchmark ist in der App-Konfiguration nicht freigeschaltet."}, 403)
+            machine = system_info()
+            if not machine.get('device_type'):
+                return self.send_json({"error": "Device type required / Gerätetyp erforderlich",
+                                       "code": "device_type_required",
+                                       "candidates": machine.get('device_type_candidates', [])}, 409)
             with lock:
                 if state["running"]:
                     return self.send_json({"error": "Benchmark läuft bereits"}, 409)
@@ -254,6 +296,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    LOG.info('HA Benchmark 0.5.0 starting; R3; community upload only after consent')
+    LOG.info('HA Benchmark %s starting; R3; community upload only after consent', VERSION)
     DATA.mkdir(exist_ok=True)
     ThreadingHTTPServer(("0.0.0.0", 8099), Handler).serve_forever()

@@ -9,6 +9,11 @@ configuration:
     description: >-
       A free-form label for local results and exports. Share & Compare never uploads this value;
       it asks for a separate public device model before publication.
+  device_type:
+    name: Device type
+    description: >-
+      “Auto” detects unambiguous Green, Yellow and Raspberry Pi systems. For ambiguous hardware,
+      the app asks once before the first run. A fixed selection overrides detection.
   cpu_model:
     name: Processor model (optional)
     description: >-
@@ -28,9 +33,10 @@ configuration:
     name: Temperature entity (optional)
     description: >-
       Entity ID of a HA temperature sensor, for example sensor.cpu_temperature.
-      Leave empty to try available Linux sysfs sensors first. Diagnostic only, with 0% index weight.
+      Leave empty to try available Linux sysfs sensors first. Diagnostic information only,
+      with no effect on the Smartdomo Index.
   power_entity:
     name: Power entity (optional)
     description: >-
       Entity ID of a power sensor in watts, ideally from a metering plug.
-      The benchmark samples it during a run; it has 0% weight in the index.
+      The benchmark samples it during a run; it is informational and is not scored.

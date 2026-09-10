@@ -1,7 +1,7 @@
 name: HA Benchmark
-version: "0.5.0"
+version: "0.6.0"
 slug: smartdomo_benchmark
-description: Reproduzierbarer Light- und Full-Benchmark mit Green-Index und Community-Vergleich
+description: Home-Assistant-Benchmark mit Smartdomo Index, Light/Full und Community-Vergleich
 url: https://smartdomo.de
 arch:
   - aarch64
@@ -22,6 +22,7 @@ stage: experimental
 options:
   allow_full_benchmark: false
   device_name: ""
+  device_type: "auto"
   cpu_model: ""
   storage_type: "unknown"
   storage_size_gb: 0
@@ -30,6 +31,7 @@ options:
 schema:
   allow_full_benchmark: bool
   device_name: str
+  device_type: list(auto|green|yellow|blue|rpi3|rpi4|rpi5|odroid|avatto_ha80|x86_64|arm64|vm|other)
   cpu_model: str
   storage_type: list(unknown|sd|emmc|sata_ssd|nvme|virtual)
   storage_size_gb: int

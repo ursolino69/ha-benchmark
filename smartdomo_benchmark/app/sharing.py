@@ -7,9 +7,10 @@ import statistics
 import unicodedata
 from datetime import datetime
 from benchmark import METHODOLOGY_ID, ENGINE_CORE_VERSION, CALIBRATION, WEIGHTS, STORAGE_WEIGHTS, calculate_indices
+from device_types import infer_device_type, valid_device_type
 
 COMMUNITY = 'https://benchmark.smartdomo.de'
-COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0')
+COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0', '0.6.0')
 SYSTEM_TEXT = ('architecture', 'cpu_model', 'home_assistant', 'operating_system', 'supervisor', 'machine', 'storage_type')
 SYSTEM_NUMBERS = ('logical_cpus', 'memory_total_mib', 'storage_size_gb')
 
@@ -24,9 +25,9 @@ def number(value, minimum=0, maximum=1e12):
         raise ValueError('Invalid measurement / Ungültiger Messwert')
     return value
 
-def public_run(run, include_environment=False):
+def public_run(run, include_environment=False, selected_device_type=None, device_model=''):
     if not isinstance(run, dict) or run.get('benchmark_version') not in COMPATIBLE_VERSIONS:
-        raise ValueError('Requires benchmark 0.4.1 or 0.5.0 / Benchmark 0.4.1 oder 0.5.0 erforderlich')
+        raise ValueError('Requires a compatible benchmark version / Kompatible Benchmark-Version erforderlich')
     if run.get('methodology_id') != METHODOLOGY_ID or run.get('engine_core_version') != ENGINE_CORE_VERSION:
         raise ValueError('Incompatible methodology / Inkompatible Methodik')
     if run.get('reference', {}).get('calibration') != CALIBRATION['calibration']:
@@ -42,6 +43,11 @@ def public_run(run, include_environment=False):
     if public_system['storage_type'] not in ('unknown', 'sd', 'emmc', 'sata_ssd', 'nvme', 'virtual'):
         raise ValueError('Invalid storage type / Ungültige Speicherart')
     public_system.update({key: number(system.get(key) or 0) for key in SYSTEM_NUMBERS})
+    chosen_type = selected_device_type if valid_device_type(selected_device_type) else system.get('device_type')
+    resolution = infer_device_type(public_system, chosen_type or 'auto', device_model)
+    if not valid_device_type(resolution.get('device_type')):
+        raise ValueError('Select a device type / Gerätetyp auswählen')
+    public_system['device_type'] = resolution['device_type']
     tests = {}
     for key in WEIGHTS:
         source = run.get('tests', {}).get(key, {})
@@ -66,17 +72,20 @@ def public_run(run, include_environment=False):
                                                for key in fields if values.get(key) is not None}
     return result
 
-def make_payload(runs, alias='', device_model='', include_environment=False):
+def make_payload(runs, alias='', device_model='', include_environment=False, device_type=None):
     if not isinstance(runs, list) or len(runs) not in (1, 3):
         raise ValueError('Select one or three runs / Einen oder drei Läufe wählen')
-    cleaned = [public_run(r, include_environment) for r in runs]
+    cleaned_model = clean_text(device_model, 80)
+    cleaned = [public_run(r, include_environment, device_type, cleaned_model) for r in runs]
     if len({r['result_id'] for r in cleaned}) != len(cleaned):
         raise ValueError('Duplicate runs / Doppelte Läufe')
     first = cleaned[0]
-    if any((r['profile'], r['benchmark_version'], r['system']) !=
-           (first['profile'], first['benchmark_version'], first['system']) for r in cleaned):
-        raise ValueError('Three runs must use the same system, version and profile / Gleiches System, Version und Profil erforderlich')
-    return dict(schema=1, alias=clean_text(alias, 40), device_model=clean_text(device_model, 80), runs=cleaned)
+    if any((r['profile'], r['methodology_id'], r['engine_core_version'], r['reference']['calibration'], r['system']) !=
+           (first['profile'], first['methodology_id'], first['engine_core_version'], first['reference']['calibration'], first['system'])
+           for r in cleaned):
+        raise ValueError('Three runs must use the same system, methodology and profile / Gleiches System, gleiche Methodik und gleiches Profil erforderlich')
+    return dict(schema=2, alias=clean_text(alias, 40), device_model=cleaned_model,
+                device_type=first['system']['device_type'], runs=cleaned)
 
 def summarize(payload):
     runs = payload['runs']
@@ -99,10 +108,19 @@ def summarize(payload):
                 values[field] = statistics.median(available)
         if values:
             environment[section] = values
+    versions = sorted({r['benchmark_version'] for r in runs})
+    spread = 0 if len(scores) == 1 else (max(scores) - min(scores)) / statistics.median(scores) * 100
+    quality = {'runs': len(scores), 'spread_percent': round(spread, 1),
+               'level': 'stable' if len(scores) == 3 and spread <= 5 else
+                        'moderate' if len(scores) == 3 and spread <= 10 else
+                        'variable' if len(scores) == 3 else 'single'}
     return dict(profile=profile, indices=indices, index=statistics.median(scores), tests=tests,
                 environment=environment,
                 count=len(runs), calibration=CALIBRATION['calibration'], methodology_id=METHODOLOGY_ID,
-                engine_core_version=ENGINE_CORE_VERSION, benchmark_version=runs[0]['benchmark_version'])
+                engine_core_version=ENGINE_CORE_VERSION, benchmark_version=versions[-1],
+                benchmark_versions=versions, device_type=payload['device_type'],
+                quality=quality,
+                compatibility_id=f"{METHODOLOGY_ID}:{CALIBRATION['calibration']}:{profile}")
 
 def fingerprint(payload):
     # Same measurement cannot create another entry merely by changing its ID/date/alias.

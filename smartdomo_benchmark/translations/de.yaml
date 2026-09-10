@@ -9,6 +9,11 @@ configuration:
     description: >-
       Frei wählbare Bezeichnung für die lokale Ergebnisanzeige und Exporte. Dieser Wert wird
       bei Share & Compare niemals übertragen; dort wird ein separates öffentliches Gerätemodell abgefragt.
+  device_type:
+    name: Gerätetyp
+    description: >-
+      „Automatisch“ erkennt eindeutige Green-, Yellow- und Raspberry-Pi-Systeme. Bei nicht eindeutiger
+      Hardware fragt die App vor dem ersten Lauf einmalig nach. Eine feste Auswahl überschreibt die Erkennung.
   cpu_model:
     name: Prozessormodell (optional)
     description: >-
@@ -17,7 +22,7 @@ configuration:
   storage_type:
     name: Speicherart
     description: >-
-      Medium des Home-Assistant-Datenlaufwerks: unbekannt, SD-Karte, eMMC, SATA-SSD,
+      Medium des Home-Assistant-Datenlaufwerks: unbekannt, SD-Karte, eMMC, SATA SSD,
       NVMe-SSD oder virtuell. Wichtig für die Einordnung des Recorder-Speichertests.
   storage_size_gb:
     name: Speichergröße in GB
@@ -28,9 +33,10 @@ configuration:
     name: Temperatur-Entität (optional)
     description: >-
       Entity-ID eines HA-Temperatursensors, zum Beispiel sensor.cpu_temperature.
-      Leer lassen, um zuerst verfügbare Linux-Sysfs-Sensoren zu verwenden. Diagnosewert mit 0 % Gewicht.
+      Leer lassen, um zuerst verfügbare Linux-Sysfs-Sensoren zu verwenden. Nur Diagnoseinformation,
+      ohne Einfluss auf den Smartdomo Index.
   power_entity:
     name: Leistungs-Entität (optional)
     description: >-
       Entity-ID eines Leistungssensors in Watt, idealerweise von einer Messsteckdose.
-      Der Benchmark tastet ihn während des Laufs ab; der Wert hat 0 % Gewicht im Index.
+      Der Benchmark tastet ihn während des Laufs ab; der Wert ist nur Information und wird nicht bewertet.

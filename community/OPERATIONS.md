@@ -40,7 +40,18 @@ backup cannot resurrect user-deleted entries.
 
 Run the installer from the new release directory. It backs up the prior application and both
 dedicated Apache virtual-host files before replacing them. The existing `/ha-dashboard`
-configuration in `000-default.conf` is not changed.
+configuration in `000-default.conf`, the database, deletion tombstones, operator details and
+moderation key are not changed.
+
+Release 0.6 migrates existing public entries in place: it adds a controlled device type,
+methodology compatibility identifier and three-run stability metadata without changing raw
+measurements or public IDs. Verify the migration with:
+
+```bash
+curl -fsS https://benchmark.smartdomo.de/api/health
+journalctl -u ha-benchmark-community -n 50 --no-pager
+sqlite3 /var/lib/ha-benchmark/results.sqlite3 'PRAGMA integrity_check;'
+```
 
 To inspect the preserved virtual hosts:
 

@@ -58,9 +58,11 @@ class CommunityTests(unittest.TestCase):
         eid = published["body"]["id"]
         token = published["body"]["delete_key"]
 
-        listed = self.request("GET", "/api/entries", query="profile=light&version=0.5.0")
+        listed = self.request("GET", "/api/entries", query="profile=light&device_type=green&alias=la")
         entry = next(item for item in listed["body"]["entries"] if item["id"] == eid)
         self.assertNotIn("delete_key", entry)
+        self.assertEqual(entry["device_type"], "green")
+        self.assertIn("quality", entry)
 
         auth = "Bearer test-administration-secret"
         hidden = self.request("POST", "/api/admin/moderate", {"id": eid, "hidden": True}, authorization=auth)
@@ -82,7 +84,7 @@ class CommunityTests(unittest.TestCase):
         self.assertTrue(second["status"].startswith("409"))
 
     def test_admin_requires_key(self):
-        result = self.request("GET", "/api/admin/entries", query="profile=light&version=0.5.0")
+        result = self.request("GET", "/api/admin/entries", query="profile=light")
         self.assertTrue(result["status"].startswith("403"))
 
 

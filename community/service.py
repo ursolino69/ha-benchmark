@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs
 from sharing import make_payload, summarize, fingerprint, COMMUNITY
+from benchmark import METHODOLOGY_ID, CALIBRATION
+from device_types import DEVICE_TYPES, infer_device_type, valid_device_type
 
 DATA = Path(os.environ.get('BENCHMARK_DATA', '/var/lib/ha-benchmark'))
 STATIC = Path(__file__).parent / 'static'
@@ -38,6 +40,30 @@ def initialize():
             ids = {line.strip() for line in TOMBSTONES.read_text().splitlines() if line.strip()}
             conn.executemany('DELETE FROM run_ids WHERE entry_id=?', [(item,) for item in ids])
             conn.executemany('DELETE FROM entries WHERE id=?', [(item,) for item in ids])
+    migrate_entries()
+
+
+def migrate_entries():
+    """Enrich existing JSON records without invalidating their measurements."""
+    with db() as conn:
+        rows = conn.execute('SELECT id,payload,summary FROM entries').fetchall()
+        for row in rows:
+            payload, summary = json.loads(row['payload']), json.loads(row['summary'])
+            runs = payload.get('runs') or []
+            if not runs:
+                continue
+            existing = payload.get('device_type') or summary.get('device_type')
+            resolution = infer_device_type(runs[0].get('system', {}), existing or 'auto', payload.get('device_model', ''))
+            device_type = resolution.get('device_type') if valid_device_type(resolution.get('device_type')) else 'other'
+            changed = payload.get('schema') != 2 or existing != device_type or 'quality' not in summary
+            payload['schema'] = 2
+            payload['device_type'] = device_type
+            for run in runs:
+                run.setdefault('system', {})['device_type'] = device_type
+            summary.update(summarize(payload))
+            if changed:
+                conn.execute('UPDATE entries SET payload=?,summary=? WHERE id=?',
+                             (json.dumps(payload), json.dumps(summary), row['id']))
 
 def key():
     return ADMIN_FILE.read_text().strip()
@@ -57,7 +83,9 @@ def rate_limit(ip):
 def public_entry(row, detail=False):
     payload, summary = json.loads(row['payload']), json.loads(row['summary'])
     result = dict(id=row['id'], created=row['created'], alias=payload['alias'], device_model=payload['device_model'],
-                  system=payload['runs'][0]['system'], **summary)
+                  system=payload['runs'][0]['system'])
+    result.update(summary)
+    result['device_type'] = payload.get('device_type', summary.get('device_type', 'other'))
     if detail:
         result['runs'] = payload['runs']
     else:
@@ -87,18 +115,20 @@ def application(env, start_response):
             body = json.loads(env['wsgi.input'].read(size))
             if not isinstance(body, dict):
                 raise ValueError('JSON object required')
-            client = env.get('HTTP_X_FORWARDED_FOR', env.get('REMOTE_ADDR', 'unknown')).split(',')[0].strip()
+            # Apache appends the observed client to X-Forwarded-For. The last
+            # address cannot be chosen by a client that prepends a forged value.
+            client = env.get('HTTP_X_FORWARDED_FOR', env.get('REMOTE_ADDR', 'unknown')).split(',')[-1].strip()
             rate_limit(client[:80])
         if method == 'GET' and path == '/api/health':
             with db() as conn:
                 conn.execute('SELECT 1 FROM entries LIMIT 1').fetchone()
-            result = {'ok': True, 'version': '0.5.0'}
+            result = {'ok': True, 'version': '0.6.0', 'methodology_id': METHODOLOGY_ID,
+                      'calibration': CALIBRATION['calibration']}
         elif method == 'POST' and path == '/api/entries':
             if body.get('consent') is not True:
                 raise ValueError('Publication consent required / Zustimmung erforderlich')
-            payload = make_payload(body.get('runs'), body.get('alias', ''), body.get('device_model', ''), True)
-            if not payload['device_model']:
-                raise ValueError('Public device model required / Öffentliches Gerätemodell erforderlich')
+            payload = make_payload(body.get('runs'), body.get('alias', ''), body.get('device_model', ''), True,
+                                   body.get('device_type'))
             summary = summarize(payload)
             eid, token = secrets.token_hex(12), secrets.token_urlsafe(32)
             try:
@@ -117,12 +147,38 @@ def application(env, start_response):
             query = parse_qs(env.get('QUERY_STRING', ''))
             offset = max(0, min(10000, int(query.get('offset', ['0'])[0])))
             profile = query.get('profile', ['light'])[0]
-            version = query.get('version', ['0.5.0'])[0]
             if profile not in ('light', 'full'):
                 raise ValueError('Invalid profile')
+            clauses = ['(? OR hidden=0)', 'json_extract(summary,\'$.profile\')=?',
+                       'json_extract(summary,\'$.methodology_id\')=?',
+                       'json_extract(summary,\'$.calibration\')=?']
+            parameters = [int(admin), profile, METHODOLOGY_ID, CALIBRATION['calibration']]
+            device_type = query.get('device_type', [''])[0]
+            storage = query.get('storage', [''])[0]
+            core = query.get('core', [''])[0][:30]
+            alias = query.get('alias', [''])[0].strip().lower()[:40]
+            if device_type:
+                if not valid_device_type(device_type):
+                    raise ValueError('Invalid device type')
+                clauses.append('json_extract(summary,\'$.device_type\')=?')
+                parameters.append(device_type)
+            if storage:
+                if storage not in ('unknown', 'sd', 'emmc', 'sata_ssd', 'nvme', 'virtual'):
+                    raise ValueError('Invalid storage type')
+                clauses.append('json_extract(payload,\'$.runs[0].system.storage_type\')=?')
+                parameters.append(storage)
+            if core:
+                clauses.append('json_extract(payload,\'$.runs[0].system.home_assistant\')=?')
+                parameters.append(core)
+            if alias:
+                clauses.append('instr(lower(json_extract(payload,\'$.alias\')),?)>0')
+                parameters.append(alias)
+            where = ' AND '.join(clauses)
             with db() as conn:
-                rows = conn.execute('SELECT * FROM entries WHERE (? OR hidden=0) AND json_extract(summary,\'$.profile\')=? AND json_extract(summary,\'$.benchmark_version\')=? ORDER BY CAST(json_extract(summary,\'$.index\') AS REAL) DESC,created DESC LIMIT 100 OFFSET ?', (int(admin), profile, version, offset)).fetchall()
-            result = {'entries': [dict(public_entry(r), **({'hidden': bool(r['hidden'])} if admin else {})) for r in rows], 'offset': offset}
+                total = conn.execute('SELECT count(*) FROM entries WHERE ' + where, parameters).fetchone()[0]
+                rows = conn.execute('SELECT * FROM entries WHERE ' + where + ' ORDER BY CAST(json_extract(summary,\'$.index\') AS REAL) DESC,created DESC LIMIT 100 OFFSET ?', parameters + [offset]).fetchall()
+            result = {'entries': [dict(public_entry(r), **({'hidden': bool(r['hidden'])} if admin else {})) for r in rows],
+                      'offset': offset, 'total': total, 'device_types': DEVICE_TYPES}
         elif method == 'GET' and path.startswith('/api/entries/'):
             with db() as conn:
                 row = conn.execute('SELECT * FROM entries WHERE id=? AND hidden=0', (path.split('/')[-1],)).fetchone()
@@ -156,9 +212,11 @@ def application(env, start_response):
             result = {'ok': True}
         elif method == 'GET' and path == '/api/legal':
             result = json.loads((DATA / 'operator.json').read_text())
-        elif method == 'GET' and path in ('/', '/index.html', '/ui.js', '/style.css', '/methodology.html', '/methodology.js', '/brand.png', '/privacy.html', '/privacy.js', '/admin.html', '/admin.js'):
+        elif method == 'GET' and path in ('/', '/index.html', '/ui.js', '/style.css', '/methodology.html', '/methodology.js',
+                                          '/brand.png', '/benchmark.svg', '/favicon.svg', '/privacy.html', '/privacy.js',
+                                          '/admin.html', '/admin.js'):
             name = 'index.html' if path == '/' else path[1:]
-            types = {'.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.png':'image/png'}
+            types = {'.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.png':'image/png', '.svg':'image/svg+xml'}
             raw = (STATIC / name).read_bytes()
             headers[0] = ('Content-Type', types[Path(name).suffix] + ('; charset=utf-8' if not name.endswith('.png') else ''))
             start_response(status, headers + [('Content-Length', str(len(raw)))])

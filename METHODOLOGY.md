@@ -1,8 +1,8 @@
-# Benchmark-Methodik R3 · Version 0.5.0
+# Benchmark-Methodik R3 · App-Version 0.6.0
 
 ## Ziel und Engine
 
-HA Benchmark misst Home-Assistant-relevante Arbeit statt allgemeiner Rechenleistung. Version 0.5.0 führt Mikrobenchmarks mit einem fest eingebauten Home Assistant Core 2026.9.1 direkt im App-Container aus. Damit bleibt die getestete Core-Implementierung über verschiedene Zielsysteme konstant.
+HA Benchmark misst Home-Assistant-relevante Arbeit statt allgemeiner Rechenleistung. Version 0.6.0 führt Mikrobenchmarks mit einem fest eingebauten Home Assistant Core 2026.9.1 direkt im App-Container aus. Damit bleibt die getestete Core-Implementierung über verschiedene Zielsysteme konstant.
 
 Die Core-Tests orientieren sich am [offiziellen Benchmark-Skript von Home Assistant Core](https://github.com/home-assistant/core/blob/dev/homeassistant/scripts/benchmark/__init__.py). Bei Events und State Changes umfasst die Zeitmessung sowohl Erzeugung als auch Verarbeitung. Hinzu kommen die Latenz der tatsächlich laufenden Home-Assistant-API und ein Recorder-naher SQLite-Test auf dem App-Datenlaufwerk.
 
@@ -54,7 +54,9 @@ Kalibrierung `GREEN-CORE-2026-09-C`, Methodik `CORE-2026.9.1-R3`: sechs Light- u
 
 Light-Result-IDs: `445c99c58753`, `f828297de964`, `0648efa0efd6`, `1850e369d1a4`, `f7dc13733227`, `d990a495fdb0`. Full-Result-IDs: `d5139fccaec4`, `370107630315`, `43740a71af97`, `2b80c89b7e4a`, `101d288b1f45`, `b8c1b67ffe50`.
 
-0.4.1 und 0.5.0 verwenden dieselbe R3-Engine und Kalibrierung, werden in der öffentlichen Rangliste aber vorsorglich als getrennte Versionen geführt. Ergebnisse aus 0.4.0 oder älter sind nicht kompatibel.
+0.4.1, 0.5.0 und 0.6.0 verwenden dieselbe R3-Engine und Kalibrierung. Die öffentliche Rangliste
+gruppiert deshalb nach Profil, Methodik-ID und Kalibrierung statt nach App-Version. Ergebnisse aus
+0.4.0 oder älter sind nicht kompatibel.
 
 ## Profile
 
@@ -79,11 +81,17 @@ Light begrenzt Last und temporäre Daten und ist für kontrollierte Läufe auf P
 - optionale Durchschnitts- und Spitzenleistung sowie integrierte Energie aus einem Sensor in W oder kW
 - Linux Pressure Stall Information (PSI) für CPU-, Speicher- und I/O-Druck
 
-Diese Werte fließen mit 0 % in den Index ein. Temperatur hängt stark von Kühlung und Umgebung ab. Eine Leistungsmessung kann je nach Sensor das Gesamtsystem oder nur einen Teil davon umfassen. PSI ist ein Diagnosehinweis auf konkurrierende Last, keine Hardware-Leistungskennzahl.
+Diese Werte sind reine Diagnoseinformationen und werden nicht bewertet. Temperatur hängt stark von
+Kühlung und Umgebung ab. Eine Leistungsmessung kann je nach Sensor das Gesamtsystem oder nur einen
+Teil davon umfassen. Linux PSI misst den Anteil der Zeit, in der mindestens eine Aufgabe (`some`) oder
+alle nicht-idlen Aufgaben (`full`) auf CPU, Speicher oder I/O warten mussten. Es ist keine
+Auslastungsanzeige und keine Hardware-Leistungskennzahl. Nahe 0 % ist unauffällig; dauerhaft mehrere
+Prozent weisen auf Ressourcenkonkurrenz hin. Der Benchmark erzeugt selbst Druck, daher ist ein einzelner
+höherer Testwert nicht automatisch kritisch.
 
 ## Reproduzierbarkeit
 
-- Nur dieselbe Benchmark-Version, Methodik-ID, dasselbe Profil und dieselbe Engine-Core-Version vergleichen.
+- Nur dieselbe Methodik-ID, Kalibrierung, dasselbe Profil und dieselbe Engine-Core-Version vergleichen.
 - Keine Backups, Updates oder Datenbankbereinigungen während eines Laufs.
 - Das System vorher einige Minuten im Leerlauf stabilisieren.
 - Mindestens drei Läufe durchführen und je Kategorie sowie insgesamt den Median verwenden.

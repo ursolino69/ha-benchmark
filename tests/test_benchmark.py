@@ -28,7 +28,7 @@ class BenchmarkTests(unittest.TestCase):
         self.assertAlmostEqual(sum(benchmark.WEIGHTS.values()), 1.0)
 
     def test_calibration_candidate_metadata(self):
-        self.assertEqual(benchmark.VERSION, "0.5.0")
+        self.assertEqual(benchmark.VERSION, "0.6.0")
         self.assertEqual(benchmark.METHODOLOGY_ID, "CORE-2026.9.1-R3")
         self.assertEqual(set(benchmark.GREEN_REFERENCES), {"light", "full"})
         self.assertEqual(benchmark.CALIBRATION["calibration"], "GREEN-CORE-2026-09-C")

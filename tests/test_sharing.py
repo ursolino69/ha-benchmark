@@ -8,6 +8,7 @@ APP = Path(__file__).parents[1] / "smartdomo_benchmark" / "app"
 sys.path.insert(0, str(APP))
 import benchmark
 import sharing
+import device_types
 
 
 def run(number=1, multiplier=1.0):
@@ -64,6 +65,25 @@ class SharingTests(unittest.TestCase):
         self.assertEqual(summary["count"], 3)
         self.assertEqual(summary["index"], 100)
         self.assertEqual(summary["environment"]["temperature"]["maximum"], 44)
+        self.assertEqual(summary["quality"]["level"], "moderate")
+        self.assertEqual(summary["quality"]["runs"], 3)
+
+    def test_stable_three_run_quality(self):
+        payload = sharing.make_payload([run(11, .99), run(12, 1), run(13, 1.01)], "", "Green")
+        self.assertEqual(sharing.summarize(payload)["quality"]["level"], "stable")
+
+    def test_device_detection_is_conservative(self):
+        pi = device_types.infer_device_type({"machine": "raspberrypi5-64", "architecture": "aarch64"})
+        self.assertEqual(pi["device_type"], "rpi5")
+        avatto = device_types.infer_device_type({"machine": "green", "architecture": "aarch64",
+                                                "memory_total_mib": 7952, "cpu_model": "RK3566"})
+        self.assertIsNone(avatto["device_type"])
+        self.assertIn("green", avatto["candidates"])
+        self.assertIn("avatto_ha80", avatto["candidates"])
+        named = device_types.infer_device_type({"machine": "green", "architecture": "aarch64",
+                                                "memory_total_mib": 7952, "cpu_model": "RK3566"},
+                                               device_model="Avatto HA80")
+        self.assertEqual(named["device_type"], "avatto_ha80")
 
     def test_three_runs_must_match_system(self):
         changed = run(3)
