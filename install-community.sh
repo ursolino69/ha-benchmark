@@ -210,7 +210,9 @@ ROTATE
 
 apache2ctl configtest
 systemctl daemon-reload
-systemctl enable --now ha-benchmark-community.service ha-benchmark-backup.timer
+systemctl enable ha-benchmark-community.service >/dev/null
+systemctl enable --now ha-benchmark-backup.timer
+systemctl restart ha-benchmark-community.service
 systemctl reload apache2
 
 HEALTH=

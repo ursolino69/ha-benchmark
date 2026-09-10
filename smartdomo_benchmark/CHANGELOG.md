@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- Community-Installer startet einen bereits laufenden Dienst nach einem Update zuverlässig neu
+- Keine Änderung an Benchmark-Methodik R3 oder Green-Kalibrierung C
+
 ## 0.6.0
 
 - Neuer responsiver Hell-/Dunkelmodus nach Browser- oder Home-Assistant-Einstellung

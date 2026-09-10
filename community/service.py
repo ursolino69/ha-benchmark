@@ -122,7 +122,7 @@ def application(env, start_response):
         if method == 'GET' and path == '/api/health':
             with db() as conn:
                 conn.execute('SELECT 1 FROM entries LIMIT 1').fetchone()
-            result = {'ok': True, 'version': '0.6.0', 'methodology_id': METHODOLOGY_ID,
+            result = {'ok': True, 'version': '0.6.1', 'methodology_id': METHODOLOGY_ID,
                       'calibration': CALIBRATION['calibration']}
         elif method == 'POST' and path == '/api/entries':
             if body.get('consent') is not True:

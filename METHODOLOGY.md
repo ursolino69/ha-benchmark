@@ -1,8 +1,8 @@
-# Benchmark-Methodik R3 · App-Version 0.6.0
+# Benchmark-Methodik R3 · App-Version 0.6.1
 
 ## Ziel und Engine
 
-HA Benchmark misst Home-Assistant-relevante Arbeit statt allgemeiner Rechenleistung. Version 0.6.0 führt Mikrobenchmarks mit einem fest eingebauten Home Assistant Core 2026.9.1 direkt im App-Container aus. Damit bleibt die getestete Core-Implementierung über verschiedene Zielsysteme konstant.
+HA Benchmark misst Home-Assistant-relevante Arbeit statt allgemeiner Rechenleistung. Version 0.6.1 führt Mikrobenchmarks mit einem fest eingebauten Home Assistant Core 2026.9.1 direkt im App-Container aus. Damit bleibt die getestete Core-Implementierung über verschiedene Zielsysteme konstant.
 
 Die Core-Tests orientieren sich am [offiziellen Benchmark-Skript von Home Assistant Core](https://github.com/home-assistant/core/blob/dev/homeassistant/scripts/benchmark/__init__.py). Bei Events und State Changes umfasst die Zeitmessung sowohl Erzeugung als auch Verarbeitung. Hinzu kommen die Latenz der tatsächlich laufenden Home-Assistant-API und ein Recorder-naher SQLite-Test auf dem App-Datenlaufwerk.
 
@@ -54,7 +54,7 @@ Kalibrierung `GREEN-CORE-2026-09-C`, Methodik `CORE-2026.9.1-R3`: sechs Light- u
 
 Light-Result-IDs: `445c99c58753`, `f828297de964`, `0648efa0efd6`, `1850e369d1a4`, `f7dc13733227`, `d990a495fdb0`. Full-Result-IDs: `d5139fccaec4`, `370107630315`, `43740a71af97`, `2b80c89b7e4a`, `101d288b1f45`, `b8c1b67ffe50`.
 
-0.4.1, 0.5.0 und 0.6.0 verwenden dieselbe R3-Engine und Kalibrierung. Die öffentliche Rangliste
+0.4.1 bis 0.6.1 verwenden dieselbe R3-Engine und Kalibrierung. Die öffentliche Rangliste
 gruppiert deshalb nach Profil, Methodik-ID und Kalibrierung statt nach App-Version. Ergebnisse aus
 0.4.0 oder älter sind nicht kompatibel.
 

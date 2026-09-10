@@ -1,11 +1,11 @@
-# Deployment 0.6.0
+# Deployment 0.6.1
 
 ## 1. Community service on the prepared VPS
 
 On Windows, place the release ZIP in the current PowerShell directory and upload it:
 
 ```powershell
-scp .\smartdomo-ha-benchmark-v0.6.0.zip root@217.154.22.176:/root/
+scp .\smartdomo-ha-benchmark-v0.6.1.zip root@217.154.22.176:/root/
 ssh root@217.154.22.176
 ```
 
@@ -13,9 +13,9 @@ Then run on the VPS:
 
 ```bash
 apt-get update && apt-get install -y unzip
-mkdir -p /root/ha-benchmark-0.6.0
-unzip -q -o /root/smartdomo-ha-benchmark-v0.6.0.zip -d /root/ha-benchmark-0.6.0
-bash /root/ha-benchmark-0.6.0/smartdomo-ha-benchmark/install-community.sh
+mkdir -p /root/ha-benchmark-0.6.1
+unzip -q -o /root/smartdomo-ha-benchmark-v0.6.1.zip -d /root/ha-benchmark-0.6.1
+bash /root/ha-benchmark-0.6.1/smartdomo-ha-benchmark/install-community.sh
 ```
 
 On the first installation the installer asks for operator/company name, complete service address and
@@ -43,7 +43,7 @@ not edit `000-default.conf`, port 5001, or the existing `/ha-dashboard` mapping.
 
 Publish the repository contents through the existing custom app repository, or copy the complete
 `smartdomo_benchmark` directory into the HAOS local apps/add-ons directory. Refresh the App Store,
-install/update **HA Benchmark 0.6.0**, and restart the app.
+install/update **HA Benchmark 0.6.1**, and restart the app.
 
 Before the first run, review every option on the **Configuration** tab. For a normal Green test,
 select the actual storage type and size. Leave Full disabled on production systems. Temperature and
@@ -63,6 +63,6 @@ power entities are optional and never affect the index.
 
 ## Important boundary
 
-Version 0.6.0 keeps methodology R3 and calibration C unchanged from 0.4.1/0.5.0. The ranking groups
+Version 0.6.1 keeps methodology R3 and calibration C unchanged from 0.4.1/0.5.0. The ranking groups
 compatible runs by methodology, calibration and profile. Community data is user-submitted and
 plausibility-checked, not hardware-attested.

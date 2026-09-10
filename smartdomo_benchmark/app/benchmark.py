@@ -20,7 +20,7 @@ from typing import Callable
 
 from device_types import infer_device_type
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 ENGINE_CORE_VERSION = "2026.9.1"
 METHODOLOGY_ID = "CORE-2026.9.1-R3"
 API = "http://supervisor/core/api"

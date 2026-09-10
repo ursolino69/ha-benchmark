@@ -10,7 +10,7 @@ from benchmark import METHODOLOGY_ID, ENGINE_CORE_VERSION, CALIBRATION, WEIGHTS,
 from device_types import infer_device_type, valid_device_type
 
 COMMUNITY = 'https://benchmark.smartdomo.de'
-COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0', '0.6.0')
+COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0', '0.6.0', '0.6.1')
 SYSTEM_TEXT = ('architecture', 'cpu_model', 'home_assistant', 'operating_system', 'supervisor', 'machine', 'storage_type')
 SYSTEM_NUMBERS = ('logical_cpus', 'memory_total_mib', 'storage_size_gb')
 

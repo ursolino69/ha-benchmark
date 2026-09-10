@@ -1,4 +1,4 @@
-# HA Benchmark 0.6.0
+# HA Benchmark 0.6.1
 
 ## Deutsch
 

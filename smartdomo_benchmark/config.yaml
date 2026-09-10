@@ -1,5 +1,5 @@
 name: HA Benchmark
-version: "0.6.0"
+version: "0.6.1"
 slug: smartdomo_benchmark
 description: Home-Assistant-Benchmark mit Smartdomo Index, Light/Full und Community-Vergleich
 url: https://smartdomo.de
