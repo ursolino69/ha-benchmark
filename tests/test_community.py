@@ -58,15 +58,15 @@ class CommunityTests(unittest.TestCase):
         eid = published["body"]["id"]
         token = published["body"]["delete_key"]
 
-        listed = self.request("GET", "/api/entries", query="profile=light&methodology=CORE-2026.9.1-R3&device_type=green&alias=la")
+        listed = self.request("GET", "/api/entries", query="profile=light&device_type=green&alias=la")
         entry = next(item for item in listed["body"]["entries"] if item["id"] == eid)
         self.assertNotIn("delete_key", entry)
         self.assertEqual(entry["device_type"], "green")
         self.assertIn("quality", entry)
 
-        filtered = self.request("GET", "/api/entries", query="profile=light&methodology=CORE-2026.9.1-R3&ram=4&storage_size=32")
+        filtered = self.request("GET", "/api/entries", query="profile=light&ram=4&storage_size=32")
         self.assertTrue(any(item["id"] == eid for item in filtered["body"]["entries"]))
-        excluded = self.request("GET", "/api/entries", query="profile=light&methodology=CORE-2026.9.1-R3&ram=8&storage_size=64")
+        excluded = self.request("GET", "/api/entries", query="profile=light&ram=8&storage_size=64")
         self.assertFalse(any(item["id"] == eid for item in excluded["body"]["entries"]))
 
         auth = "Bearer test-administration-secret"
@@ -92,7 +92,19 @@ class CommunityTests(unittest.TestCase):
         result = self.request("GET", "/api/admin/entries", query="profile=light")
         self.assertTrue(result["status"].startswith("403"))
 
-    def test_r4_is_current_and_separate_from_r3(self):
+    def test_startup_removes_legacy_public_entries(self):
+        legacy_id = "legacy-entry"
+        with self.service.db() as conn:
+            conn.execute("INSERT INTO entries VALUES(?,?,?,?,?,?,0)",
+                         (legacy_id, "legacy-fingerprint", 1, "unused", "{}",
+                          json.dumps({"methodology_id": "legacy"})))
+            conn.execute("INSERT INTO run_ids VALUES(?,?)", ("legacy-run", legacy_id))
+        self.service.initialize()
+        with self.service.db() as conn:
+            self.assertIsNone(conn.execute("SELECT id FROM entries WHERE id=?", (legacy_id,)).fetchone())
+            self.assertIsNone(conn.execute("SELECT rid FROM run_ids WHERE entry_id=?", (legacy_id,)).fetchone())
+
+    def test_r4_is_the_only_public_methodology(self):
         body = sharing.make_payload([r4_run(300)], "R4", "Green", False)
         body["consent"] = True
         published = self.request("POST", "/api/entries", body)
@@ -101,9 +113,7 @@ class CommunityTests(unittest.TestCase):
         current = self.request("GET", "/api/entries", query="profile=light")
         self.assertEqual(current["body"]["methodology_id"], "CORE-2026.9.1-R4")
         self.assertTrue(any(item["id"] == eid for item in current["body"]["entries"]))
-        archive = self.request("GET", "/api/entries",
-                               query="profile=light&methodology=CORE-2026.9.1-R3")
-        self.assertFalse(any(item["id"] == eid for item in archive["body"]["entries"]))
+        self.assertEqual(len(current["body"]["methodologies"]), 1)
 
 
 if __name__ == "__main__":

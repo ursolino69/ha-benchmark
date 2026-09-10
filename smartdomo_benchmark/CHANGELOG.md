@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1
+
+- Veraltete R4-Kalibrierungswarnung aus zwischengespeichertem 0.7.0-Frontend behoben
+- Versionsparameter für JavaScript/CSS und `no-store` verhindern alte Ingress-/Companion-Assets
+- Öffentliche Rangliste und Sharing vollständig auf die kalibrierte Methodik R4 reduziert
+- Vorhandene öffentliche Einträge älterer Methodiken werden beim Server-Update entfernt
+- Hinweise und Auswahlmöglichkeiten für die nicht mehr öffentliche Vorgängermethodik entfernt
+
 ## 0.8.0
 
 - Methodik R4 mit fünf Light- und fünf Full-Läufen auf Home Assistant Green kalibriert

@@ -6,9 +6,9 @@ const weights=`<div class="table-wrap"><table><thead><tr><th>Category / Kategori
 const de=`
 <h1>Benchmark-Methodik R4</h1>
 <h2>Status</h2>
-<p>R4 ist mit fünf Light- und fünf Full-Läufen auf Home Assistant Green kalibriert. Die Referenz <strong>GREEN-CORE-2026-09-D</strong> verwendet Home Assistant Core 2026.9.1, HAOS 18.2 und Supervisor 2026.09.0. R4 ist wegen grundlegend veränderter Arbeitslasten nicht mit R3 vergleichbar.</p>
+<p>Die Methodik ist mit fünf Light- und fünf Full-Läufen auf Home Assistant Green kalibriert. Die Referenz <strong>GREEN-CORE-2026-09-D</strong> verwendet Home Assistant Core 2026.9.1, HAOS 18.2 und Supervisor 2026.09.0.</p>
 <h2>Ziel der Überarbeitung</h2>
-<p>R4 misst definierte Home-Assistant-Leistung statt allgemeiner Eignung. Die Arbeitsmengen orientieren sich an Installationen mit hunderten Entitäten und kombinieren wiederkehrende mit neuen Daten. Reine Python-Cache-Treffer beeinflussen das Ergebnis damit deutlich weniger. Gerätepreis, Marktverbreitung und Eignungsklassen sind nicht Bestandteil von R4.</p>
+<p>R4 misst definierte Home-Assistant-Leistung statt allgemeiner Eignung. Die Arbeitsmengen orientieren sich an Installationen mit hunderten Entitäten und kombinieren wiederkehrende mit neuen Daten. Reine Python-Cache-Treffer beeinflussen das Ergebnis damit deutlich weniger. Gerätepreis, Marktverbreitung und Eignungsklassen sind nicht Bestandteil der Bewertung.</p>
 <h2>Gewichtung</h2>${weights}
 <p>Die Gewichte sind fest veröffentlicht und werden nicht an Hersteller oder gewünschte Rangfolgen angepasst.</p>
 <h2>Core Events</h2>
@@ -25,13 +25,13 @@ const de=`
 <p>Durchsatzindex = 100 × Messwert / Green-Referenz. Latenzindex = 100 × Green-Referenz / Messwert. Der Smartdomo Index ist das gewichtete geometrische Mittel. Temperatur, Energie und Linux PSI bleiben reine Diagnosewerte.</p>
 <h2>Kalibrierung und Vergleichbarkeit</h2>
 <p>Methodik-ID: <strong>CORE-2026.9.1-R4</strong>. Verwendet wurden die Mediane von fünf vollständigen Green-Läufen je Profil. Mit der veröffentlichten Ganzzahlberechnung lagen die resultierenden Gesamtindizes der Referenzserie bei Light zwischen 98 und 101 sowie bei Full zwischen 99 und 101. Der längere erste Light-Gesamtlauf wurde nicht ausgeschlossen, da seine bewerteten Einzelmetriken plausibel waren und die Gesamtdauer nicht in den Index eingeht.</p>
-<p>Rangliste und Gerätevergleich trennen R4 und R3 strikt nach Methodik, Kalibrierung und Profil. Drei kompatible Läufe erhalten ein Qualitätskennzeichen; dies verbessert die Wiederholbarkeit, ist aber keine unabhängige Hardware-Verifikation.</p>`;
+<p>Rangliste und Gerätevergleich erlauben nur Ergebnisse derselben Methodik, Kalibrierung und desselben Profils. Drei kompatible Läufe erhalten ein Qualitätskennzeichen; dies verbessert die Wiederholbarkeit, ist aber keine unabhängige Hardware-Verifikation.</p>`;
 const en=`
 <h1>Benchmark methodology R4</h1>
 <h2>Status</h2>
-<p>R4 is calibrated from five Light and five Full runs on Home Assistant Green. Reference <strong>GREEN-CORE-2026-09-D</strong> uses Home Assistant Core 2026.9.1, HAOS 18.2 and Supervisor 2026.09.0. R4 is not comparable with R3 because its workloads changed substantially.</p>
+<p>The methodology is calibrated from five Light and five Full runs on Home Assistant Green. Reference <strong>GREEN-CORE-2026-09-D</strong> uses Home Assistant Core 2026.9.1, HAOS 18.2 and Supervisor 2026.09.0.</p>
 <h2>Revision goal</h2>
-<p>R4 measures defined Home Assistant performance rather than general suitability. Workloads represent installations with hundreds of entities and combine recurring with new data, substantially reducing the influence of pure Python cache hits. Device price, installed-base statistics and suitability classes are outside R4.</p>
+<p>R4 measures defined Home Assistant performance rather than general suitability. Workloads represent installations with hundreds of entities and combine recurring with new data, substantially reducing the influence of pure Python cache hits. Device price, installed-base statistics and suitability classes are outside the score.</p>
 <h2>Weights</h2>${weights}
 <p>The weights are fixed and published. They are not adjusted for manufacturers or desired rankings.</p>
 <h2>Core events</h2>
@@ -48,5 +48,5 @@ const en=`
 <p>Throughput index = 100 × measured value / Green reference. Latency index = 100 × Green reference / measured value. The Smartdomo Index is the weighted geometric mean. Temperature, energy and Linux PSI remain diagnostic only.</p>
 <h2>Calibration and comparison</h2>
 <p>Methodology ID: <strong>CORE-2026.9.1-R4</strong>. References are the medians of five complete Green runs per profile. With the released integer calculation, resulting overall indices in the reference series ranged from 98 to 101 for Light and 99 to 101 for Full. The longer first Light run was retained because its scored metrics were plausible and total duration does not affect the index.</p>
-<p>The ranking and device comparison strictly separate R4 and R3 by methodology, calibration and profile. Three compatible runs receive a quality marker; this improves repeatability but is not independent hardware verification.</p>`;
+<p>The ranking and device comparison allow only results with the same methodology, calibration and profile. Three compatible runs receive a quality marker; this improves repeatability but is not independent hardware verification.</p>`;
 function render(){document.documentElement.lang=language.value;document.getElementById('back').textContent=language.value==='de'?'Zurück':'Back';document.getElementById('method').innerHTML=language.value==='de'?de:en}language.onchange=()=>{localStorage.setItem('ha-benchmark-language',language.value);render()};render();

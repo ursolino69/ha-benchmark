@@ -6,17 +6,15 @@ import re
 import statistics
 import unicodedata
 from datetime import datetime
-import scoring_r3
 import scoring_r4
 from device_types import infer_device_type, valid_device_type
 
 COMMUNITY = 'https://benchmark.smartdomo.de'
 CURRENT_CONTRACT = scoring_r4
 CONTRACTS = {
-    scoring_r3.METHODOLOGY_ID: scoring_r3,
     scoring_r4.METHODOLOGY_ID: scoring_r4,
 }
-COMPATIBLE_VERSIONS = ('0.4.1', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.8.0')
+COMPATIBLE_VERSIONS = ('0.7.0', '0.8.0', '0.8.1')
 SYSTEM_TEXT = ('architecture', 'cpu_model', 'home_assistant', 'operating_system', 'supervisor', 'machine', 'storage_type')
 SYSTEM_NUMBERS = ('logical_cpus', 'memory_total_mib', 'storage_size_gb')
 

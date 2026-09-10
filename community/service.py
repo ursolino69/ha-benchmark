@@ -63,6 +63,13 @@ def initialize():
             ids = {line.strip() for line in TOMBSTONES.read_text().splitlines() if line.strip()}
             conn.executemany('DELETE FROM run_ids WHERE entry_id=?', [(item,) for item in ids])
             conn.executemany('DELETE FROM entries WHERE id=?', [(item,) for item in ids])
+        legacy = [row[0] for row in conn.execute(
+            "SELECT id FROM entries WHERE json_extract(summary,'$.methodology_id') IS NOT ?",
+            (CURRENT_CONTRACT.METHODOLOGY_ID,)).fetchall()]
+        if legacy:
+            conn.executemany('DELETE FROM run_ids WHERE entry_id=?', [(item,) for item in legacy])
+            conn.executemany('DELETE FROM entries WHERE id=?', [(item,) for item in legacy])
+            LOG.info('legacy_entries_removed count=%s', len(legacy))
     migrate_entries()
 
 
@@ -146,7 +153,7 @@ def application(env, start_response):
             with db() as conn:
                 conn.execute('SELECT 1 FROM entries LIMIT 1').fetchone()
             result = {
-                'ok': True, 'version': '0.8.0',
+                'ok': True, 'version': '0.8.1',
                 'methodology_id': CURRENT_CONTRACT.METHODOLOGY_ID,
                 'calibration': CURRENT_CONTRACT.CALIBRATION['calibration'],
                 'methodologies': [

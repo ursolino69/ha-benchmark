@@ -1,12 +1,11 @@
-# HA Benchmark 0.8.0
+# HA Benchmark 0.8.1
 
 ## Deutsch
 
 ### Zweck und Sicherheit
 
-HA Benchmark R4 misst sieben definierte Home-Assistant-Workloads praxisnäher als R3. Jede Kategorie
-und der Smartdomo Index sind gegen Home Assistant Green = 100 kalibriert. R3-Ergebnisse bleiben lokal
-erhalten und in der getrennten öffentlichen R3-Archivansicht vergleichbar.
+HA Benchmark misst sieben definierte Home-Assistant-Workloads. Jede Kategorie und der Smartdomo Index
+sind gegen Home Assistant Green = 100 kalibriert.
 
 **Light** ist für einen kontrollierten Lauf auf einem Produktivsystem gedacht. Auch Light erzeugt
 kurzzeitig Last und temporäre Schreibdaten. Nicht während Backups, Updates, Recorder-Bereinigung
@@ -56,7 +55,7 @@ zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R
 
 ### Share & Compare
 
-R4- und R3-Läufe lassen sich teilen, werden aber strikt getrennt. Im Verlauf genau einen oder drei
+Im Verlauf genau einen oder drei
 Läufe derselben Methodik, Kalibrierung, desselben Profils und Systems
 markieren, **Share & Compare** öffnen, optional eine Modellbezeichnung und einen Alias eintragen und
 die Datenvorschau prüfen. Erst die abschließende Zustimmung sendet die angezeigten Daten an
@@ -86,9 +85,8 @@ HTTP-Anfragepfade. Bei Problemen unter **Einstellungen → Apps → HA Benchmark
 
 ### Purpose and safety
 
-HA Benchmark R4 measures seven defined Home Assistant workloads with more representative data than
-R3. Every category and the Smartdomo Index are calibrated against Home Assistant Green = 100.
-Existing R3 results remain available in a separate public archive view.
+HA Benchmark measures seven defined Home Assistant workloads. Every category and the Smartdomo Index
+are calibrated against Home Assistant Green = 100.
 
 **Light** is intended for a controlled run on a production system, but still creates temporary load
 and writes. Avoid backups, updates, recorder maintenance and busy automation periods. **Full** creates
@@ -113,7 +111,7 @@ storage type and size, and optional temperature/power entities. Without a temper
 tries Linux sysfs first; not every device exposes it to the container. A power entity must report W or
 kW and is best sourced from a metering plug at the power supply.
 
-R4 and R3 publishing are available but strictly separated. For **Share & Compare**, select exactly one or three entries with matching methodology, calibration,
+For **Share & Compare**, select exactly one or three entries with matching methodology, calibration,
 profile and system, optionally enter a model name and alias, then inspect the preview. Nothing is transmitted until final consent. Local
 device names, hostnames, IPs, entity IDs, tokens, configuration and HA states are excluded. Environment
 values are optional. Publication is immediate and subject to later moderation.

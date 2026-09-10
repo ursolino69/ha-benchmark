@@ -1,12 +1,10 @@
-# Benchmark-Methodik R4 · App-Version 0.8.0
+# Benchmark-Methodik R4 · App-Version 0.8.1
 
 ## Status
 
 R4 ist mit fünf kontrollierten Home-Assistant-Green-Läufen je Profil kalibriert. Die Referenz
-`GREEN-CORE-2026-09-D` verwendet die Mediane der Rohmetriken. R4 ist wegen grundlegend veränderter
-Arbeitslasten nicht mit R3 vergleichbar; R3-Referenzen wurden weder übernommen noch umgerechnet.
-Rangliste und Vergleich trennen beide Methoden strikt. Die vorherige Beschreibung liegt in
-[`METHODOLOGY-R3.md`](METHODOLOGY-R3.md).
+`GREEN-CORE-2026-09-D` verwendet die Mediane der Rohmetriken. Rangliste und Gerätevergleich erlauben
+nur Ergebnisse dieser Methodik und Kalibrierung.
 
 ## Ziel und Abgrenzung
 
@@ -14,7 +12,7 @@ R4 misst definierte Home-Assistant-Leistung, nicht Preis, Marktverbreitung oder 
 Eignung eines Geräts. Die isolierte Messengine verwendet Home Assistant Core 2026.9.1 auf allen
 Zielsystemen. Nur der API-Test fragt die laufende Home-Assistant-Instanz ab.
 
-Gegenüber R3 wurden vier Verzerrungen korrigiert:
+Die Methodik vermeidet vier typische Verzerrungen synthetischer Benchmarks:
 
 - State Changes verteilen sich über hunderte Entitäten; jeder Listener-Bestand wird tatsächlich genutzt.
 - Events, Zustände und Attribute ändern sich statt dass dasselbe Objekt tausendfach wiederholt wird.

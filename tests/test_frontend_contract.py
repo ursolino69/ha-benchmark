@@ -28,15 +28,20 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIn(class_name, UI)
             self.assertIn(f".{class_name}", CSS)
 
-    def test_r3_and_r4_weights_are_separate(self):
-        self.assertIn("weightsR3=", UI)
-        self.assertIn("weightsR4=", UI)
+    def test_only_r4_weights_are_present(self):
+        self.assertNotIn("weightsR3=", UI)
+        self.assertNotIn("CORE-2026.9.1-R3", UI)
         self.assertIn("resultWeights", UI)
 
     def test_calibrated_r4_is_the_default_ranking(self):
-        self.assertIn('value="CORE-2026.9.1-R4"', UI)
+        self.assertNotIn('id="methodology"', UI)
         self.assertIn("Green = 100 · Kalibrierung D", UI)
-        self.assertIn("0.8.0", UI)
+        self.assertIn("0.8.1", UI)
+
+    def test_assets_are_cache_busted(self):
+        index = (ROOT / "smartdomo_benchmark" / "app" / "index.html").read_text()
+        self.assertIn("ui.js?v=0.8.1", index)
+        self.assertIn("style.css?v=0.8.1", index)
 
 
 if __name__ == "__main__":

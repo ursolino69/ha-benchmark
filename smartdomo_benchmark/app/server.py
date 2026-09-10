@@ -58,7 +58,8 @@ def community_post(payload):
 
 def load_results():
     try:
-        results = json.loads(RESULTS.read_text())
+        results = [result for result in json.loads(RESULTS.read_text())
+                   if result.get('methodology_id') == METHODOLOGY_ID]
         for result in results:
             if (result.get('methodology_id') == METHODOLOGY_ID
                     and result.get('engine_core_version') == ENGINE_CORE_VERSION
@@ -218,7 +219,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(raw)))
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Cache-Control', 'public, max-age=3600' if name in allowed and not name.endswith('.html') else 'no-store')
+            self.send_header('Cache-Control', 'no-store')
             self.end_headers()
             self.wfile.write(raw)
 
@@ -306,7 +307,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    LOG.info('HA Benchmark %s starting; R4 calibration=%s; R3 archive remains available',
+    LOG.info('HA Benchmark %s starting; R4 calibration=%s',
              VERSION, CALIBRATION['calibration'])
     DATA.mkdir(exist_ok=True)
     ThreadingHTTPServer(("0.0.0.0", 8099), Handler).serve_forever()
