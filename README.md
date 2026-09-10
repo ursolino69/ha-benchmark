@@ -7,21 +7,15 @@ Home-Assistant-specific workloads instead of relying on generic CPU or disk benc
 be kept locally or, after an exact data preview and explicit consent, published anonymously to the
 public [Share & Compare](https://benchmark.smartdomo.de) ranking.
 
-**Current release:** 0.7.0  
-**Methodology:** R4 calibration candidate  
+**Current release:** 0.8.1  
+**Methodology:** calibrated R4  
 **Supported architectures:** aarch64 and amd64  
 **License:** [MIT](LICENSE)  
 **App documentation:** [Deutsch](smartdomo_benchmark/DOCS.md#deutsch) · [English](smartdomo_benchmark/DOCS.md#english)
 
-> [!IMPORTANT]
-> R4 deliberately has no provisional index. Its workloads differ substantially from R3, so new
-> Home Assistant Green reference measurements are required. Version 0.7.0 therefore displays R4 raw
-> values only. Existing calibrated R3 results remain available in the public ranking and are never
-> mixed with R4 data.
-
 ## What it measures
 
-| Category | Planned weight | Workload |
+| Category | Weight | Workload |
 | --- | ---: | --- |
 | Core Events | 15% | Eight event types with changing payloads and complete burst processing |
 | State Changes | 20% | Fresh old/new states distributed across hundreds of entities and active listener groups |
@@ -34,11 +28,10 @@ public [Share & Compare](https://benchmark.smartdomo.de) ranking.
 Temperature, power, energy and Linux Pressure Stall Information (PSI) can also be recorded. They are
 diagnostic values only and do not affect the index.
 
-The planned Smartdomo Index is normalized to **Home Assistant Green = 100** for each profile. It uses
+The Smartdomo Index is normalized to **Home Assistant Green = 100** for each profile. It uses
 a weighted geometric mean so that one exceptionally fast category cannot completely conceal a weak
 one. The formula, workload sizes, storage sub-metrics, limitations and calibration protocol are
-documented in [Methodology R4](METHODOLOGY.md). The previous calibrated method remains available as
-[Methodology R3](METHODOLOGY-R3.md).
+documented in [Methodology R4](METHODOLOGY.md).
 
 ## Benchmark profiles
 
@@ -59,13 +52,15 @@ serialization work and durable storage operations. The profile remains locked un
 HA Benchmark is a Home Assistant app and requires Home Assistant OS with the Supervisor/App Store. It
 does not install as a regular Home Assistant integration or as a standalone Home Assistant Container.
 
-[![Add the HA Benchmark repository to Home Assistant](https://my.home-assistant.io/badges/supervisor_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fursolino69%2Fha-benchmark)
+Add this app repository in Home Assistant:
 
-Alternatively, install it manually:
+```text
+https://github.com/ursolino69/ha-benchmark
+```
 
 1. Open **Settings → Apps → App Store** in Home Assistant.
 2. Open the menu and select **Repositories**.
-3. Add `https://github.com/ursolino69/ha-benchmark`.
+3. Paste the repository URL shown above and select **Add**.
 4. Select **HA Benchmark**, install it and enable **Show in sidebar**.
 5. Review the configuration before starting the first benchmark.
 
@@ -87,8 +82,8 @@ not constitute independent hardware verification.
 
 ## Understanding the results
 
-Each result card contains the measured value and unit. Once R4 calibration is complete, it will also
-show the category index and its contribution to the Smartdomo Index. Higher index values are always
+Each result card contains the measured value, unit, category index and its contribution to the
+Smartdomo Index. Higher index values are always
 better; a value of 100 represents the corresponding Home Assistant Green reference measurement.
 
 Every result card is interactive and explains:
@@ -119,14 +114,14 @@ The public service recalculates submitted scores and never trusts client-provide
 device names, hostnames, IP addresses, entity IDs, access tokens, Home Assistant configuration and
 entity states are excluded. Details are documented in [Security and privacy](SECURITY.md).
 
-R4 publishing will be enabled only after the new Green calibration has been completed. Calibrated R3
-results can still be shared and compared at [benchmark.smartdomo.de](https://benchmark.smartdomo.de).
+Calibrated results can be shared and compared at
+[benchmark.smartdomo.de](https://benchmark.smartdomo.de).
 
 ## Documentation
 
 - [App guide: configuration, interpretation and troubleshooting](smartdomo_benchmark/DOCS.md)
 - [Benchmark methodology R4](METHODOLOGY.md)
-- [Previous benchmark methodology R3](METHODOLOGY-R3.md)
+- [R4 calibration report](CALIBRATION-R4.md)
 - [Security and privacy model](SECURITY.md)
 - [Release history](smartdomo_benchmark/CHANGELOG.md)
 - [Community service deployment](DEPLOYMENT.md)
@@ -156,7 +151,6 @@ reference calibration.
 
 ## Project status
 
-Version 0.7.0 is the R4 calibration candidate. The next release requires controlled Home Assistant
-Green Light and Full reference series, publication of their medians and dispersion, and assignment of
-a new R4 calibration ID. Until then, raw R4 measurements are suitable for methodology testing but not
-for cross-version ranking.
+Version 0.8.1 is calibrated with five controlled Home Assistant Green runs for each profile. The
+frozen reference is `GREEN-CORE-2026-09-D`; its source runs, medians, dispersion and limitations are
+published in the [R4 calibration report](CALIBRATION-R4.md).
