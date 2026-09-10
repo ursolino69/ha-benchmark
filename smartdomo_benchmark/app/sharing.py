@@ -6,7 +6,7 @@ import re
 import statistics
 import unicodedata
 from datetime import datetime
-from benchmark import METHODOLOGY_ID, ENGINE_CORE_VERSION, CALIBRATION, WEIGHTS, STORAGE_WEIGHTS, calculate_indices
+from scoring_r3 import METHODOLOGY_ID, ENGINE_CORE_VERSION, CALIBRATION, WEIGHTS, STORAGE_WEIGHTS, calculate_indices
 from device_types import infer_device_type, valid_device_type
 
 COMMUNITY = 'https://benchmark.smartdomo.de'

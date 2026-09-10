@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+- Methodik R4 mit wechselnden Events, Zuständen und Attributen über realistischere Entity-Bestände
+- Entity-Filter und ID-Prüfung zu 5 % Entity-Verarbeitung mit 80/20-Warm-/Neu-Mix zusammengeführt
+- Frische State-Objekte je JSON-Batch statt wiederholter Serialisierung identischer Objekte
+- Neue parallele Core-Last mit 20 % vorgesehenem Anteil zur Abbildung von Mehrkern-Kapazität
+- R4-Indizes bis zu neuen Green-Referenzserien bewusst deaktiviert; R3-Rangliste bleibt unverändert
+- RAM-Anzeige in GB sowie zusätzliche Rankingfilter für RAM und Massenspeichergröße
+- Sichtbarer Änderungsstatus am Filter-Button; Auswahlspalte rechts unter dem Vergleichsbutton
+- Dialogabstände, Feldgruppen, Zustimmung und Aktionen neu geordnet
+
 ## 0.6.1
 
 - Community-Installer startet einen bereits laufenden Dienst nach einem Update zuverlässig neu

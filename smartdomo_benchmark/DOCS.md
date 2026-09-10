@@ -1,12 +1,12 @@
-# HA Benchmark 0.6.1
+# HA Benchmark 0.7.0
 
 ## Deutsch
 
 ### Zweck und Sicherheit
 
-HA Benchmark misst sieben definierte Home-Assistant-Workloads und setzt jeden Messbereich sowie
-den Gesamtwert relativ zu Home Assistant Green auf den Index 100. Die Werte sind Vergleichswerte,
-keine Garantie für die Geschwindigkeit jeder realen Installation.
+HA Benchmark R4 misst sieben definierte Home-Assistant-Workloads praxisnäher als R3. R4 ist zunächst
+unkalibriert: Bis neue Green-Referenzserien vorliegen, werden Rohwerte, aber keine Indizes angezeigt.
+R3-Ergebnisse bleiben lokal erhalten und in der öffentlichen R3-Rangliste vergleichbar.
 
 **Light** ist für einen kontrollierten Lauf auf einem Produktivsystem gedacht. Auch Light erzeugt
 kurzzeitig Last und temporäre Schreibdaten. Nicht während Backups, Updates, Recorder-Bereinigung
@@ -25,13 +25,13 @@ gewichtete geometrische Mittel aus:
 
 | Kategorie | Anteil |
 |---|---:|
-| Core Events | 20 % |
+| Core Events | 15 % |
 | State Changes | 20 % |
-| Entity-Filter | 10 % |
-| Entity-ID-Prüfung | 5 % |
-| JSON States | 15 % |
+| Entity-Verarbeitung | 5 % |
+| Frische JSON States | 10 % |
 | Recorder-Speicher | 20 % |
 | API-Latenz | 10 % |
+| Parallele Core-Last | 20 % |
 
 Temperatur, Leistung, Energie und Linux-PSI sind ausschließlich Diagnoseinformationen und werden
 nicht bewertet. PSI (Pressure Stall Information) zeigt den Zeitanteil, in dem Aufgaben wegen CPU,
@@ -40,7 +40,7 @@ dauerhaft mehrere Prozent weisen auf Ressourcenkonkurrenz hin. Während des absi
 Tests ist ein einzelner höherer Wert noch kein Fehler. Es gibt keinen universellen kritischen Wert
 für alle HA-Geräte. Die
 Temperatur- und Energiekacheln erklären Messquelle und Grenzen ebenfalls per Klick. Die vollständige,
-zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R3** verlinkt.
+zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R4** verlinkt.
 
 ### Konfiguration
 
@@ -56,7 +56,8 @@ zweisprachige Beschreibung ist in der Oberfläche rechts oben unter **Methodik R
 
 ### Share & Compare
 
-Im Verlauf genau einen oder drei Läufe derselben Methodik, Kalibrierung, desselben Profils und Systems
+R4-Läufe können erst nach Abschluss der Green-Kalibrierung veröffentlicht werden. R3-Läufe lassen sich
+weiterhin teilen. Im Verlauf genau einen oder drei R3-Läufe derselben Methodik, Kalibrierung, desselben Profils und Systems
 markieren, **Share & Compare** öffnen, optional eine Modellbezeichnung und einen Alias eintragen und
 die Datenvorschau prüfen. Erst die abschließende Zustimmung sendet die angezeigten Daten an
 `https://benchmark.smartdomo.de`.
@@ -85,9 +86,9 @@ HTTP-Anfragepfade. Bei Problemen unter **Einstellungen → Apps → HA Benchmark
 
 ### Purpose and safety
 
-HA Benchmark measures seven defined Home Assistant workloads. Every category and the overall result
-use Home Assistant Green as index 100. These are comparative measurements, not a promise about every
-real installation.
+HA Benchmark R4 measures seven defined Home Assistant workloads with more representative data than
+R3. R4 initially remains uncalibrated: raw measurements are shown, but no indices, until new Green
+reference series are available. Existing R3 results remain available in the public R3 ranking.
 
 **Light** is intended for a controlled run on a production system, but still creates temporary load
 and writes. Avoid backups, updates, recorder maintenance and busy automation periods. **Full** creates
@@ -98,12 +99,13 @@ The entry receives a repeated-run badge and uses the median. It is more repeatab
 verified.
 
 Each result tile shows its overall weight, index and raw value, and opens an explanation and use cases.
-Higher indices are always better. The weights are Core Events 20%, State Changes 20%, entity filters
-10%, entity ID validation 5%, JSON States 15%, Recorder storage 20%, and API latency 10%.
+After calibration, higher indices are better. Planned weights are Core Events 15%, State Changes 20%,
+entity processing 5%, fresh JSON States 10%, Recorder storage 20%, API latency 10%, and parallel Core
+load 20%.
 Temperature, power, energy and Linux PSI are informational and are not scored. PSI (Pressure Stall
 Information) measures time in which tasks were stalled for CPU, memory or I/O; it is not utilization.
 Values near zero are unobtrusive, while sustained values of several percent indicate contention.
-A temporary higher value during the intentional benchmark load is not by itself a fault. Open **Methodology R3**
+A temporary higher value during the intentional benchmark load is not by itself a fault. Open **Methodology R4**
 at the top right for the complete bilingual method, formulas and limitations.
 
 The configuration labels explain the Full safety switch, controlled device type, local-only device name, optional CPU model,
@@ -111,7 +113,7 @@ storage type and size, and optional temperature/power entities. Without a temper
 tries Linux sysfs first; not every device exposes it to the container. A power entity must report W or
 kW and is best sourced from a metering plug at the power supply.
 
-For **Share & Compare**, select exactly one or three entries with matching methodology, calibration,
+R4 publishing is enabled only after Green calibration. For the existing R3 **Share & Compare**, select exactly one or three entries with matching methodology, calibration,
 profile and system, optionally enter a model name and alias, then inspect the preview. Nothing is transmitted until final consent. Local
 device names, hostnames, IPs, entity IDs, tokens, configuration and HA states are excluded. Environment
 values are optional. Publication is immediate and subject to later moderation.

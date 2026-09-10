@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs
 from sharing import make_payload, summarize, fingerprint, COMMUNITY
-from benchmark import METHODOLOGY_ID, CALIBRATION
+from scoring_r3 import METHODOLOGY_ID, CALIBRATION
 from device_types import DEVICE_TYPES, infer_device_type, valid_device_type
 
 DATA = Path(os.environ.get('BENCHMARK_DATA', '/var/lib/ha-benchmark'))
@@ -19,6 +19,29 @@ ADMIN_FILE = Path(os.environ.get('BENCHMARK_ADMIN_FILE', '/etc/ha-benchmark/admi
 TOMBSTONES = DATA / 'deleted.ids'
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 LOG = logging.getLogger('community')
+
+RAM_RANGES = {
+    '2': (0, 3071), '4': (3072, 6143), '8': (6144, 12287),
+    '16': (12288, 24575), '32plus': (24576, None),
+}
+STORAGE_SIZE_RANGES = {
+    '32': (0, 47), '64': (48, 95), '128': (96, 191),
+    '256': (192, 383), '512': (384, 767), '1000plus': (768, None),
+}
+
+
+def add_numeric_range(clauses, parameters, query, parameter_name, json_path, ranges):
+    selection = query.get(parameter_name, [''])[0]
+    if not selection:
+        return
+    if selection not in ranges:
+        raise ValueError('Invalid numeric filter')
+    lower, upper = ranges[selection]
+    clauses.append(f"CAST(json_extract(payload,'{json_path}') AS REAL)>=?")
+    parameters.append(lower)
+    if upper is not None:
+        clauses.append(f"CAST(json_extract(payload,'{json_path}') AS REAL)<=?")
+        parameters.append(upper)
 
 def db():
     DATA.mkdir(parents=True, exist_ok=True)
@@ -122,7 +145,7 @@ def application(env, start_response):
         if method == 'GET' and path == '/api/health':
             with db() as conn:
                 conn.execute('SELECT 1 FROM entries LIMIT 1').fetchone()
-            result = {'ok': True, 'version': '0.6.1', 'methodology_id': METHODOLOGY_ID,
+            result = {'ok': True, 'version': '0.7.0', 'methodology_id': METHODOLOGY_ID,
                       'calibration': CALIBRATION['calibration']}
         elif method == 'POST' and path == '/api/entries':
             if body.get('consent') is not True:
@@ -173,6 +196,8 @@ def application(env, start_response):
             if alias:
                 clauses.append('instr(lower(json_extract(payload,\'$.alias\')),?)>0')
                 parameters.append(alias)
+            add_numeric_range(clauses, parameters, query, 'ram', '$.runs[0].system.memory_total_mib', RAM_RANGES)
+            add_numeric_range(clauses, parameters, query, 'storage_size', '$.runs[0].system.storage_size_gb', STORAGE_SIZE_RANGES)
             where = ' AND '.join(clauses)
             with db() as conn:
                 total = conn.execute('SELECT count(*) FROM entries WHERE ' + where, parameters).fetchone()[0]

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import gc
 import glob
 import hashlib
 import json
 import math
+import multiprocessing
 import os
 import platform
 import sqlite3
@@ -20,9 +22,9 @@ from typing import Callable
 
 from device_types import infer_device_type
 
-VERSION = "0.6.1"
+VERSION = "0.7.0"
 ENGINE_CORE_VERSION = "2026.9.1"
-METHODOLOGY_ID = "CORE-2026.9.1-R3"
+METHODOLOGY_ID = "CORE-2026.9.1-R4"
 API = "http://supervisor/core/api"
 SUPERVISOR = "http://supervisor"
 
@@ -32,29 +34,36 @@ class Profile:
     name: str
     events: int
     state_events: int
-    listeners: int
-    filter_calls: int
-    validation_calls: int
-    json_states: int
+    entity_count: int
+    entity_operations: int
+    json_batches: int
+    json_entities: int
     sqlite_payload_mib: int
     sqlite_commits: int
     sqlite_reads: int
     api_requests: int
+    parallel_workers: int
+    parallel_batches: int
+    parallel_entities: int
 
 
 PROFILES = {
-    "light": Profile("light", 50_000, 25_000, 250, 50_000, 250_000, 20_000, 6, 100, 1_000, 8),
-    "full": Profile("full", 250_000, 100_000, 1_000, 250_000, 1_000_000, 100_000, 64, 1_000, 5_000, 30),
+    # Entity counts deliberately mirror installations with hundreds rather
+    # than tens of thousands of concurrently resident entities.
+    "light": Profile("light", 24_000, 12_000, 400, 40_000, 50, 400,
+                     6, 100, 1_000, 10, 2, 80, 400),
+    "full": Profile("full", 120_000, 60_000, 1_000, 200_000, 100, 1_000,
+                    64, 1_000, 5_000, 30, 4, 180, 600),
 }
 
 WEIGHTS = {
-    "core_events": .20,
+    "core_events": .15,
     "state_changes": .20,
-    "entity_filter": .10,
-    "entity_validation": .05,
-    "json_states": .15,
+    "entity_processing": .05,
+    "json_states": .10,
     "sqlite": .20,
     "api_latency": .10,
+    "parallel_workload": .20,
 }
 
 STORAGE_WEIGHTS = {
@@ -64,46 +73,20 @@ STORAGE_WEIGHTS = {
     "checkpoint_ms": .15,
 }
 
-GREEN_REFERENCES: dict[str, dict] = {
-    "light": {
-        "core_events": 49_907.0,
-        "state_changes": 35_642.5,
-        "entity_filter": 767_060.5,
-        "entity_validation": 1_631_954.5,
-        "json_states": 276_875.5,
-        "sqlite": {
-            "write_mib_s": 11.935,
-            "commit_p95_ms": 4.1095,
-            "random_read_p95_ms": 0.4142,
-            "checkpoint_ms": 162.92,
-        },
-        "api_latency": 18.535,
-    },
-    "full": {
-        "core_events": 49_543.0,
-        "state_changes": 35_549.5,
-        "entity_filter": 771_039.5,
-        "entity_validation": 1_621_901.5,
-        "json_states": 279_900.5,
-        "sqlite": {
-            "write_mib_s": 10.765,
-            "commit_p95_ms": 5.3895,
-            "random_read_p95_ms": 0.28905,
-            "checkpoint_ms": 1_657.5,
-        },
-        "api_latency": 18.675,
-    },
-}
+# R4 changes the workloads and therefore starts without inherited R3 scores.
+# Populate this only after repeatable Green Light and Full calibration series.
+GREEN_REFERENCES: dict[str, dict] = {}
 CALIBRATION = {
     "device": "Home Assistant Green",
     "index": 100,
-    "calibration": "GREEN-CORE-2026-09-C",
+    "calibration": "PENDING-GREEN-R4",
     "methodology_id": METHODOLOGY_ID,
     "engine_core": ENGINE_CORE_VERSION,
     "core": "2026.9.1",
     "haos": "18.2",
     "supervisor": "2026.09.0",
-    "sample_size": {"light": 6, "full": 6},
+    "sample_size": {"light": 0, "full": 0},
+    "status": "pending",
 }
 
 
@@ -255,19 +238,25 @@ def core_events_test(profile, cancel):
     async def run():
         hass = core.HomeAssistant("")
         count = 0
+        event_types = [f"smartdomo_benchmark_{index}" for index in range(8)]
         @core.callback
         def listener(_):
             nonlocal count
             count += 1
-        hass.bus.async_listen("smartdomo_benchmark_event", listener)
+        for event_type in event_types:
+            hass.bus.async_listen(event_type, listener)
         for _ in range(min(1_000, profile.events // 10)):
-            hass.bus.async_fire("smartdomo_benchmark_event")
+            hass.bus.async_fire(event_types[_ % len(event_types)], {"sequence": _, "source": "warmup"})
         await hass.async_block_till_done()
         count = 0
         started = time.perf_counter()
         for index in range(profile.events):
-            hass.bus.async_fire("smartdomo_benchmark_event")
-            if index % 10_000 == 0:
+            hass.bus.async_fire(event_types[index % len(event_types)], {
+                "sequence": index, "entity_id": f"sensor.benchmark_{index % profile.entity_count}",
+                "value": index % 101,
+            })
+            if index and index % 1_000 == 0:
+                await hass.async_block_till_done()
                 _check(cancel)
         await hass.async_block_till_done()
         elapsed = time.perf_counter() - started
@@ -287,68 +276,133 @@ def state_changes_test(profile, cancel):
     async def run():
         hass = core.HomeAssistant("")
         count = 0
+        automation_hits = 0
         @core.callback
         def listener(_):
             nonlocal count
             count += 1
-        async_track_state_change_event(hass, [f"sensor.benchmark_{i}" for i in range(profile.listeners)], listener)
-        event_data = {"entity_id": "sensor.benchmark_0", "old_state": core.State("sensor.benchmark_0", "off"), "new_state": core.State("sensor.benchmark_0", "on")}
+        entity_ids = [f"sensor.benchmark_{i}" for i in range(profile.entity_count)]
+        async_track_state_change_event(hass, entity_ids, listener)
+        group_size = max(4, profile.entity_count // 50)
+        for group in range(14):
+            tracked = [entity_ids[(group * group_size + offset) % len(entity_ids)]
+                       for offset in range(group_size)]
+            @core.callback
+            def automation_listener(event):
+                nonlocal automation_hits
+                automation_hits += 1
+                # Representative condition access performed by state-based automations.
+                new_state = event.data.get("new_state")
+                if new_state is not None:
+                    _ = new_state.state, new_state.attributes.get("sequence")
+            async_track_state_change_event(hass, tracked, automation_listener)
         for _ in range(min(1_000, profile.state_events // 10)):
-            hass.bus.async_fire(EVENT_STATE_CHANGED, event_data)
+            entity_id = entity_ids[_ % len(entity_ids)]
+            hass.bus.async_fire(EVENT_STATE_CHANGED, {
+                "entity_id": entity_id,
+                "old_state": core.State(entity_id, str(_ % 100), {"unit_of_measurement": "W"}),
+                "new_state": core.State(entity_id, str((_ + 1) % 100), {"unit_of_measurement": "W"}),
+            })
         await hass.async_block_till_done()
         count = 0
+        automation_hits = 0
         started = time.perf_counter()
         for index in range(profile.state_events):
-            hass.bus.async_fire(EVENT_STATE_CHANGED, event_data)
-            if index % 10_000 == 0:
+            entity_id = entity_ids[index % len(entity_ids)]
+            hass.bus.async_fire(EVENT_STATE_CHANGED, {
+                "entity_id": entity_id,
+                "old_state": core.State(entity_id, str(index % 100), {"sequence": index - 1}),
+                "new_state": core.State(entity_id, str((index + 1) % 100), {"sequence": index}),
+            })
+            if index and index % 500 == 0:
+                await hass.async_block_till_done()
                 _check(cancel)
         await hass.async_block_till_done()
         elapsed = time.perf_counter() - started
         await hass.async_stop()
         if count != profile.state_events:
             raise RuntimeError("State-Zähler stimmt nicht überein")
-        return elapsed
-    elapsed = _run_async(run())
-    return {"value": round(profile.state_events / elapsed), "unit": "State-Events/s"}
+        return elapsed, automation_hits
+    elapsed, automation_hits = _run_async(run())
+    return {"value": round(profile.state_events / elapsed), "unit": "State-Events/s",
+            "entities": profile.entity_count, "automation_groups": 14,
+            "automation_callback_calls": automation_hits}
 
 
-def entity_filter_test(profile, cancel):
+def entity_processing_test(profile, cancel):
+    from homeassistant import core
     from homeassistant.helpers.entityfilter import convert_include_exclude_filter
     config = {"include": {"domains": ["automation", "script", "group", "media_player"], "entity_globs": ["binary_sensor.*_contact", "input_*", "switch.*_light"], "entities": ["binary_sensor.garage_door_open"]}, "exclude": {"domains": ["input_number"], "entity_globs": ["media_player.google_*"], "entities": []}}
     entity_filter = convert_include_exclude_filter(config)
-    entity_ids = ["automation.home_arrival", "script.shut_off_house", "binary_sensor.garage_door_open", "switch.desk_light", "light.dining_room", "input_boolean.guests", "person.user", "sun.sun"]
+    domains = ("sensor", "binary_sensor", "switch", "light", "automation", "media_player", "input_number", "person")
+    entity_ids = [f"{domains[index % len(domains)]}.benchmark_{index}" for index in range(profile.entity_count)]
     started = time.perf_counter()
-    for index in range(profile.filter_calls):
-        entity_filter(entity_ids[index % len(entity_ids)])
+    accepted = 0
+    for index in range(profile.entity_operations):
+        # Four warm identifiers followed by one new identifier approximate a
+        # mixed cache workload instead of timing a single cached dictionary hit.
+        entity_id = (f"sensor.dynamic_{index}" if index % 5 == 0
+                     else entity_ids[(index * 97) % len(entity_ids)])
+        accepted += bool(entity_filter(entity_id))
+        accepted += bool(core.valid_entity_id(entity_id))
         if index % 25_000 == 0:
             _check(cancel)
-    return {"value": round(profile.filter_calls / (time.perf_counter() - started)), "unit": "Filter/s"}
-
-
-def entity_validation_test(profile, cancel):
-    from homeassistant import core
-    started = time.perf_counter()
-    for index in range(profile.validation_calls):
-        core.valid_entity_id("light.kitchen")
-        if index % 100_000 == 0:
-            _check(cancel)
-    return {"value": round(profile.validation_calls / (time.perf_counter() - started)), "unit": "Prüfungen/s"}
+    return {"value": round(profile.entity_operations / (time.perf_counter() - started)),
+            "unit": "Entity-Paare/s", "entities": profile.entity_count,
+            "cache_mix": "80% wiederkehrend / 20% neu", "accepted_checks": accepted}
 
 
 def json_states_test(profile, cancel):
     from homeassistant import core
     from homeassistant.helpers.json import JSON_DUMP
-    _check(cancel)
-    states = [core.State(f"sensor.benchmark_{i}", "on", {"friendly_name": "Benchmark"}) for i in range(profile.json_states)]
-    timings = []
-    for _ in range(3):
-        gc.collect()
-        started = time.perf_counter()
+    gc.collect()
+    total = profile.json_batches * profile.json_entities
+    started = time.perf_counter()
+    for batch in range(profile.json_batches):
+        states = [core.State(
+            f"sensor.benchmark_{index}", str((batch + index) % 1000),
+            {"friendly_name": f"Benchmark {index}", "sequence": batch,
+             "unit_of_measurement": "W", "available": index % 23 != 0},
+        ) for index in range(profile.json_entities)]
         JSON_DUMP(states)
-        timings.append(time.perf_counter() - started)
-    elapsed = statistics.median(timings)
-    del states
-    return {"value": round(profile.json_states / elapsed), "unit": "States/s serialisiert"}
+        if batch % 5 == 0:
+            _check(cancel)
+    elapsed = time.perf_counter() - started
+    return {"value": round(total / elapsed), "unit": "frische States/s",
+            "batches": profile.json_batches, "entities_per_batch": profile.json_entities}
+
+
+def _parallel_state_worker(job):
+    """Generate and serialize fresh HA states in an isolated worker process."""
+    batches, entities, worker = job
+    from homeassistant import core
+    from homeassistant.helpers.json import JSON_DUMP
+    completed = 0
+    for batch in range(batches):
+        states = [core.State(
+            f"sensor.parallel_{worker}_{index}", str((batch + index) % 1000),
+            {"worker": worker, "sequence": batch, "unit_of_measurement": "W"},
+        ) for index in range(entities)]
+        JSON_DUMP(states)
+        completed += len(states)
+    return completed
+
+
+def parallel_workload_test(profile, cancel):
+    workers = max(1, min(profile.parallel_workers, os.cpu_count() or 1))
+    context = multiprocessing.get_context("spawn")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=workers, mp_context=context) as pool:
+        # Import and process start-up are deliberately outside the timed region.
+        list(pool.map(_parallel_state_worker, [(1, 20, worker) for worker in range(workers)]))
+        _check(cancel)
+        jobs = [(profile.parallel_batches, profile.parallel_entities, worker) for worker in range(workers)]
+        started = time.perf_counter()
+        completed = sum(pool.map(_parallel_state_worker, jobs))
+        elapsed = time.perf_counter() - started
+    _check(cancel)
+    return {"value": round(completed / elapsed), "unit": "parallele States/s",
+            "workers": workers, "states": completed,
+            "entities_per_batch": profile.parallel_entities}
 
 
 def sqlite_test(profile, cancel):
@@ -477,11 +531,11 @@ def api_latency_test(profile, cancel):
 TESTS = [
     ("core_events", "Core Events", core_events_test),
     ("state_changes", "State Changes", state_changes_test),
-    ("entity_filter", "Entity-Filter", entity_filter_test),
-    ("entity_validation", "Entity-IDs", entity_validation_test),
+    ("entity_processing", "Entity-Verarbeitung", entity_processing_test),
     ("json_states", "JSON States", json_states_test),
     ("sqlite", "SQLite Recorder", sqlite_test),
     ("api_latency", "HA API", api_latency_test),
+    ("parallel_workload", "Parallele Last", parallel_workload_test),
 ]
 
 

@@ -7,12 +7,13 @@ from pathlib import Path
 APP = Path(__file__).parents[1] / "smartdomo_benchmark" / "app"
 sys.path.insert(0, str(APP))
 import benchmark
+import scoring_r3
 import sharing
 import device_types
 
 
 def run(number=1, multiplier=1.0):
-    references = benchmark.GREEN_REFERENCES["light"]
+    references = scoring_r3.GREEN_REFERENCES["light"]
     tests = {}
     for key, value in references.items():
         if key == "sqlite":
@@ -22,9 +23,9 @@ def run(number=1, multiplier=1.0):
     return {
         "result_id": f"{number:012x}",
         "benchmark_version": "0.5.0",
-        "methodology_id": benchmark.METHODOLOGY_ID,
-        "engine_core_version": benchmark.ENGINE_CORE_VERSION,
-        "reference": benchmark.CALIBRATION,
+        "methodology_id": scoring_r3.METHODOLOGY_ID,
+        "engine_core_version": scoring_r3.ENGINE_CORE_VERSION,
+        "reference": scoring_r3.CALIBRATION,
         "profile": "light",
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "duration_seconds": 3.5,

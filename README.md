@@ -1,7 +1,8 @@
 # HA Benchmark
 
-Home-Assistant-specific Light and Full benchmark with the Green = 100 Smartdomo Index, transparent
-R3 methodology, automatic English/German UI and opt-in Share & Compare at `benchmark.smartdomo.de`.
+Home-Assistant-specific Light and Full benchmark. Version 0.7.0 introduces the transparent R4
+methodology; Green calibration is intentionally pending. The calibrated R3 Share & Compare ranking
+remains available at `benchmark.smartdomo.de`.
 
 ## Home Assistant installation
 

@@ -1,106 +1,102 @@
-# Benchmark-Methodik R3 · App-Version 0.6.1
+# Benchmark-Methodik R4 · App-Version 0.7.0
 
-## Ziel und Engine
+## Status
 
-HA Benchmark misst Home-Assistant-relevante Arbeit statt allgemeiner Rechenleistung. Version 0.6.1 führt Mikrobenchmarks mit einem fest eingebauten Home Assistant Core 2026.9.1 direkt im App-Container aus. Damit bleibt die getestete Core-Implementierung über verschiedene Zielsysteme konstant.
+R4 ist wegen grundlegend veränderter Arbeitslasten nicht mit R3 vergleichbar. Bis neue stabile
+Green-Referenzserien für Light und Full vorliegen, zeigt Version 0.7.0 ausschließlich Rohwerte.
+R3-Referenzen werden nicht übernommen oder mathematisch umgerechnet. Die öffentliche Rangliste
+bleibt deshalb vorerst auf R3; deren vollständige Beschreibung liegt in
+[`METHODOLOGY-R3.md`](METHODOLOGY-R3.md).
 
-Die Core-Tests orientieren sich am [offiziellen Benchmark-Skript von Home Assistant Core](https://github.com/home-assistant/core/blob/dev/homeassistant/scripts/benchmark/__init__.py). Bei Events und State Changes umfasst die Zeitmessung sowohl Erzeugung als auch Verarbeitung. Hinzu kommen die Latenz der tatsächlich laufenden Home-Assistant-API und ein Recorder-naher SQLite-Test auf dem App-Datenlaufwerk.
+## Ziel und Abgrenzung
 
-## Kategorien und Gewichtung
+R4 misst definierte Home-Assistant-Leistung, nicht Preis, Marktverbreitung oder die allgemeine
+Eignung eines Geräts. Die isolierte Messengine verwendet Home Assistant Core 2026.9.1 auf allen
+Zielsystemen. Nur der API-Test fragt die laufende Home-Assistant-Instanz ab.
 
-| Kategorie | Gewicht | Gemessene HA-Arbeit |
+Gegenüber R3 wurden vier Verzerrungen korrigiert:
+
+- State Changes verteilen sich über hunderte Entitäten; jeder Listener-Bestand wird tatsächlich genutzt.
+- Events, Zustände und Attribute ändern sich statt dass dasselbe Objekt tausendfach wiederholt wird.
+- Entity-Prüfungen verwenden 80 % wiederkehrende und 20 % neue IDs statt nahezu reiner Cache-Treffer.
+- Eine getrennte Prozesslast macht verfügbare Mehrkern-Kapazität sichtbar.
+
+## Kategorien und vorgesehene Gewichtung
+
+| Kategorie | Anteil | R4-Arbeitslast |
 |---|---:|---|
-| Core Events | 20 % | Interner Event-Bus und Listener-Ausführung |
-| State Changes | 20 % | State-Change-Events mit registrierten Entity-Listenern |
-| Entity-Filter | 10 % | Include-/Exclude-Filter für Domains, Entitäten und Globs |
-| Entity-IDs | 5 % | Validierung von Entity-IDs als kleine, häufige Core-Operation |
-| JSON States | 15 % | Serialisierung echter Core-State-Objekte |
-| Recorder-Speicher | 20 % | Dauerhafte SQLite-Commits, Schreiben, Zufallslesen und WAL-Checkpoint |
-| HA API | 10 % | Mediane Antwortzeit der laufenden Core-REST-API |
+| Core Events | 15 % | Acht Eventtypen, wechselnde Nutzdaten, vollständige Burst-Verarbeitung |
+| State Changes | 20 % | Wechselnde alte/neue State-Objekte über 400 bzw. 1.000 Entitäten |
+| Entity-Verarbeitung | 5 % | Filter und ID-Prüfung mit gemischtem Arbeitsbestand |
+| JSON States | 10 % | Je Batch neu erzeugte State-Objekte und Attribute |
+| Recorder-Speicher | 20 % | Dauerhafte SQLite-Commits, Schreiben, Zufallslesen, WAL-Checkpoint |
+| HA API | 10 % | Mediane Antwortzeit der laufenden REST-API |
+| Parallele Core-Last | 20 % | Gleichzeitige State-Erzeugung/-Serialisierung in getrennten Prozessen |
 
-Der Gesamtindex wird nach der Green-Kalibrierung als gewichtetes geometrisches Mittel berechnet. Das reduziert die Wirkung einzelner extremer Teilwerte und belohnt ein ausgewogenes System. Bei Latenzen wird das Verhältnis umgekehrt, weil weniger Millisekunden besser sind.
+Die Gewichte werden erst nach der Green-Kalibrierung für die Indexberechnung verwendet. Danach gilt:
 
-## Recorder-Speichertest R3
-
-SQLite verwendet `journal_mode=WAL`, `synchronous=FULL` und deaktivierte automatische Checkpoints. Die App schreibt 2-KiB-Datensätze in viele kleine Transaktionen. Jeder gemessene Commit fordert damit eine dauerhafte Synchronisation durch SQLite und das Betriebssystem an. Anschließend wird ein expliziter WAL-Checkpoint ausgeführt. Vor den Zufallslesezugriffen wird der Datenbank-Handle geschlossen und die Freigabe des Linux-Dateicaches mit `POSIX_FADV_DONTNEED` angefordert, sofern dies im Container verfügbar ist. Diese Freigabe ist Best Effort und keine Garantie, dass jeder Lesezugriff das physische Medium erreicht.
-
-Der Recorder-Speicherindex ist selbst ein geometrisches Mittel aus vier Teilindizes:
-
-| Teilmessung | Anteil am Speicherindex | Richtung | Bedeutung |
-|---|---:|---|---|
-| Commit p95 | 40 % | niedriger besser | ungünstige Latenz der dauerhaften kleinen Transaktionen |
-| Schreibdurchsatz | 25 % | höher besser | Nutzdaten pro gesamter Schreibphase |
-| Random Read p95 | 20 % | niedriger besser | ungünstige Latenz verstreuter Datensätze nach Cache-Freigabeversuch |
-| WAL-Checkpoint | 15 % | niedriger besser | Übernahme des WAL in die Hauptdatenbank |
-
-Der Speicherindex trägt anschließend mit 20 % zum Gesamtindex bei. Eine schnelle SD-Karte kann in einzelnen Teilwerten gut abschneiden, ihre typische Schwäche bei Synchronisationslatenz und Streuung wird aber wesentlich deutlicher sichtbar als im früheren gemischten Ops/s-Test. Haltbarkeit, Stromausfallsicherheit und Alterung werden weiterhin nicht geprüft.
-
-## Green-Kalibrierung
-
-Kalibrierung `GREEN-CORE-2026-09-C`, Methodik `CORE-2026.9.1-R3`: sechs Light- und sechs Full-Läufe auf einem Home Assistant Green mit Home Assistant OS 18.2, Core 2026.9.1 und Supervisor 2026.09.0. Der Median jeder Kategorie und Speicher-Teilmessung bildet Index 100. Ein vorheriger Light-Lauf wurde ausgeschlossen, weil seine Gesamtdauer mit 14,25 Sekunden mehr als doppelt so hoch wie die stabile Messgruppe war und zu Beginn erhöhter CPU-Druck gemessen wurde.
-
-| Kategorie | Light = 100 | Full = 100 |
-|---|---:|---:|
-| Core Events | 49.907/s | 49.543/s |
-| State Changes | 35.642,5/s | 35.549,5/s |
-| Entity-Filter | 767.060,5/s | 771.039,5/s |
-| Entity-IDs | 1.631.954,5/s | 1.621.901,5/s |
-| JSON States | 276.875,5/s | 279.900,5/s |
-| Speicher: Schreiben | 11,935 MiB/s | 10,765 MiB/s |
-| Speicher: Commit p95 | 4,1095 ms | 5,3895 ms |
-| Speicher: Random Read p95 | 0,4142 ms | 0,28905 ms |
-| Speicher: WAL-Checkpoint | 162,92 ms | 1.657,5 ms |
-| HA API | 18,535 ms | 18,675 ms |
-
-Light-Result-IDs: `445c99c58753`, `f828297de964`, `0648efa0efd6`, `1850e369d1a4`, `f7dc13733227`, `d990a495fdb0`. Full-Result-IDs: `d5139fccaec4`, `370107630315`, `43740a71af97`, `2b80c89b7e4a`, `101d288b1f45`, `b8c1b67ffe50`.
-
-0.4.1 bis 0.6.1 verwenden dieselbe R3-Engine und Kalibrierung. Die öffentliche Rangliste
-gruppiert deshalb nach Profil, Methodik-ID und Kalibrierung statt nach App-Version. Ergebnisse aus
-0.4.0 oder älter sind nicht kompatibel.
+- Durchsatzindex = `100 × Messwert / Green-Referenz`
+- Latenzindex = `100 × Green-Referenz / Messwert`
+- Smartdomo Index = gewichtetes geometrisches Mittel der Kategorieindizes
 
 ## Profile
 
 | Parameter | Light | Full |
 |---|---:|---:|
-| Core Events | 50.000 | 250.000 |
-| State Events | 25.000 | 100.000 |
-| registrierte State-Listener | 250 | 1.000 |
-| Entity-Filter-Aufrufe | 50.000 | 250.000 |
-| Entity-ID-Prüfungen | 250.000 | 1.000.000 |
-| serialisierte States | 20.000 | 100.000 |
+| Core Events | 24.000 | 120.000 |
+| State Changes | 12.000 | 60.000 |
+| Entity-Arbeitsbestand | 400 | 1.000 |
+| Entity-Operationspaare | 40.000 | 200.000 |
+| JSON-Batches × Entitäten | 50 × 400 | 100 × 1.000 |
+| parallele Worker (maximal) | 2 | 4 |
+| parallele Batches × Entitäten je Worker | 80 × 400 | 180 × 600 |
 | SQLite-Nutzdaten | 6 MiB | 64 MiB |
 | dauerhafte SQLite-Commits | 100 | 1.000 |
 | SQLite-Zufallslesezugriffe | 1.000 | 5.000 |
-| API-Aufrufe | 8 | 30 |
+| API-Aufrufe | 10 | 30 |
 
-Light begrenzt Last und temporäre Daten und ist für kontrollierte Läufe auf Produktivsystemen vorgesehen. Durch WAL und Hauptdatenbank liegt der kurzfristige Platzbedarf über der Nutzdatenmenge und wird im Resultat als `peak_temporary_mib` protokolliert. Full ist nur für Testsysteme freigebbar.
+Light begrenzt Arbeitsspeicher und temporäre Schreibdaten und darf kontrolliert auf einem ruhigen
+Produktivsystem laufen. Full erzeugt deutlich höhere Last und ist ausschließlich für Testsysteme.
 
-## Diagnosewerte ohne Gewicht
+## Testdetails
 
-- CPU-/SoC-Temperatur aus Linux-Sysfs oder einer konfigurierten HA-Entität
-- optionale Durchschnitts- und Spitzenleistung sowie integrierte Energie aus einem Sensor in W oder kW
-- Linux Pressure Stall Information (PSI) für CPU-, Speicher- und I/O-Druck
+### Events und Zustände
 
-Diese Werte sind reine Diagnoseinformationen und werden nicht bewertet. Temperatur hängt stark von
-Kühlung und Umgebung ab. Eine Leistungsmessung kann je nach Sensor das Gesamtsystem oder nur einen
-Teil davon umfassen. Linux PSI misst den Anteil der Zeit, in der mindestens eine Aufgabe (`some`) oder
-alle nicht-idlen Aufgaben (`full`) auf CPU, Speicher oder I/O warten mussten. Es ist keine
-Auslastungsanzeige und keine Hardware-Leistungskennzahl. Nahe 0 % ist unauffällig; dauerhaft mehrere
-Prozent weisen auf Ressourcenkonkurrenz hin. Der Benchmark erzeugt selbst Druck, daher ist ein einzelner
-höherer Testwert nicht automatisch kritisch.
+Erzeugung und vollständige Verarbeitung liegen innerhalb der Messzeit. Regelmäßige
+`async_block_till_done`-Grenzen verhindern unrealistisch große Warteschlangen. State Changes rotieren
+über den gesamten Entity-Bestand und erzeugen je Ereignis neue `old_state`- und `new_state`-Objekte.
 
-## Reproduzierbarkeit
+### Entity-Verarbeitung und JSON
 
-- Nur dieselbe Methodik-ID, Kalibrierung, dasselbe Profil und dieselbe Engine-Core-Version vergleichen.
-- Keine Backups, Updates oder Datenbankbereinigungen während eines Laufs.
-- Das System vorher einige Minuten im Leerlauf stabilisieren.
-- Mindestens drei Läufe durchführen und je Kategorie sowie insgesamt den Median verwenden.
-- Für eine Referenzkalibrierung mindestens fünf Läufe pro Profil verwenden.
-- Kühlung, Speichermedium, Home-Assistant-Version und laufende Apps dokumentieren.
-- Light und Full niemals in derselben Rangliste führen.
+Ein Entity-Operationspaar besteht aus Include-/Exclude-Filterung und `valid_entity_id`. Vier von fünf
+IDs stammen aus einem wiederkehrenden Bestand, jede fünfte ist neu. JSON misst sowohl die Erzeugung
+neuer Core-State-Objekte als auch deren Serialisierung mit Home Assistants JSON-Encoder.
 
-## Nebenwirkungen und Grenzen
+### Parallele Core-Last
 
-Die Core-Mikrobenchmarks laufen in einer isolierten Home-Assistant-Instanz innerhalb der Benchmark-App und verändern keine Entitäten der produktiven Instanz. SQLite arbeitet ausschließlich mit einer temporären Datenbank im App-Datenverzeichnis und löscht sie anschließend. Nur der API-Test fragt die laufende Home-Assistant-Instanz ab; er verändert keine Daten.
+Getrennte Prozesse erzeugen und serialisieren gleichzeitig frische Core-State-Objekte. Prozessstart
+und Modulimport werden vor der Zeitmessung aufgewärmt. Die Kategorie bildet Mehrkern-Reserve für
+parallel laufende Apps und HA-nahe Aufgaben ab. Sie behauptet nicht, dass Home Assistants Event-Loop
+selbst mehrere Kerne parallel nutzt.
 
-Der Benchmark bildet wichtige Core-Pfade ab, aber nicht jede Integration, Funklatenz, langfristige Recorder-Datenbank, SD-Karten-Haltbarkeit oder Dashboard-Konfiguration. Das Ergebnis ist ein vergleichbarer Index für die definierte Methodik, keine Garantie für jeden realen Anwendungsfall.
+### Recorder-Speicher
+
+SQLite verwendet `journal_mode=WAL`, `synchronous=FULL` und deaktivierte automatische Checkpoints.
+Der Speicherindex setzt sich nach der Kalibrierung aus Commit-p95 (40 %), Schreibdurchsatz (25 %),
+Random-Read-p95 (20 %) und WAL-Checkpoint (15 %) zusammen. Cache-Freigabe wird per
+`POSIX_FADV_DONTNEED` angefordert, garantiert aber keine physisch kalten Zugriffe. Haltbarkeit und
+Stromausfallsicherheit werden nicht geprüft.
+
+## Diagnosewerte
+
+Temperatur, Leistung, Energie und Linux Pressure Stall Information (PSI) sind reine Informationen und
+gehen nicht in den Index ein. PSI misst blockierte Zeit wegen CPU-, Speicher- oder I/O-Druck und ist
+keine Auslastungsanzeige.
+
+## Kalibrierungsprotokoll
+
+Für jede Profilreferenz sind mindestens fünf, vorgesehen sieben Green-Läufe unter kontrollierten
+Bedingungen erforderlich. Verwendet wird je Rohmetrik der Median. Vorab werden fehlgeschlagene Läufe,
+abweichende Methodik-/Core-Versionen und dokumentierte Fremdlast ausgeschlossen. Streuung und
+Ausschlüsse werden zusammen mit der finalen Referenz veröffentlicht. Erst dann wird eine neue,
+eindeutige R4-Kalibrierungs-ID vergeben und Share & Compare für R4 aktiviert.

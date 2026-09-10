@@ -153,8 +153,8 @@ class Handler(BaseHTTPRequestHandler):
             writer.writerow([
                 "result_id", "date", "version", "methodology_id", "engine_core", "profile", "index",
                 "duration_s", "device", "device_type", "machine", "cpu", "ram_mib", "storage_type", "storage_gb",
-                "haos", "ha_core", "supervisor", "core_events", "state_changes", "entity_filter",
-                "entity_validation", "json_states", "storage_write_mib_s", "storage_commit_median_ms",
+                "haos", "ha_core", "supervisor", "core_events", "state_changes", "entity_processing",
+                "json_states", "parallel_workload", "storage_write_mib_s", "storage_commit_median_ms",
                 "storage_commit_p95_ms", "storage_commit_p99_ms", "storage_random_read_median_ms",
                 "storage_random_read_p95_ms", "storage_random_read_p99_ms", "storage_random_reads_s",
                 "storage_checkpoint_ms", "storage_database_mib", "storage_payload_mib", "storage_commits",
@@ -176,7 +176,7 @@ class Handler(BaseHTTPRequestHandler):
                     s.get("cpu_model"), s.get("memory_total_mib"), s.get("storage_type"),
                     s.get("storage_size_gb"), s.get("operating_system"), s.get("home_assistant"),
                     s.get("supervisor"), value("core_events"), value("state_changes"),
-                    value("entity_filter"), value("entity_validation"), value("json_states"),
+                    value("entity_processing"), value("json_states"), value("parallel_workload"),
                     storage.get("write_mib_s"), storage.get("commit_median_ms"),
                     storage.get("commit_p95_ms"), storage.get("commit_p99_ms"),
                     storage.get("random_read_median_ms"), storage.get("random_read_p95_ms"),
@@ -296,6 +296,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    LOG.info('HA Benchmark %s starting; R3; community upload only after consent', VERSION)
+    LOG.info('HA Benchmark %s starting; R4 calibration pending; R3 community upload remains available', VERSION)
     DATA.mkdir(exist_ok=True)
     ThreadingHTTPServer(("0.0.0.0", 8099), Handler).serve_forever()

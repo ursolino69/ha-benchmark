@@ -64,6 +64,11 @@ class CommunityTests(unittest.TestCase):
         self.assertEqual(entry["device_type"], "green")
         self.assertIn("quality", entry)
 
+        filtered = self.request("GET", "/api/entries", query="profile=light&ram=4&storage_size=32")
+        self.assertTrue(any(item["id"] == eid for item in filtered["body"]["entries"]))
+        excluded = self.request("GET", "/api/entries", query="profile=light&ram=8&storage_size=64")
+        self.assertFalse(any(item["id"] == eid for item in excluded["body"]["entries"]))
+
         auth = "Bearer test-administration-secret"
         hidden = self.request("POST", "/api/admin/moderate", {"id": eid, "hidden": True}, authorization=auth)
         self.assertTrue(hidden["status"].startswith("200"))
