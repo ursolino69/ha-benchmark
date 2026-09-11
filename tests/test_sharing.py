@@ -22,7 +22,7 @@ def run(number=1, multiplier=1.0):
             tests[key] = {"value": value * multiplier}
     return {
         "result_id": f"{number:012x}",
-        "benchmark_version": "0.8.1",
+        "benchmark_version": "0.8.2",
         "methodology_id": scoring_r4.METHODOLOGY_ID,
         "engine_core_version": scoring_r4.ENGINE_CORE_VERSION,
         "reference": scoring_r4.CALIBRATION,
@@ -43,7 +43,7 @@ def run(number=1, multiplier=1.0):
 
 def r4_run(number=1, multiplier=1.0, candidate=False):
     result = run(number, multiplier)
-    result["benchmark_version"] = "0.7.0" if candidate else "0.8.1"
+    result["benchmark_version"] = "0.7.0" if candidate else "0.8.2"
     if candidate:
         result.pop("reference")
         result["calibration_status"] = "pending"

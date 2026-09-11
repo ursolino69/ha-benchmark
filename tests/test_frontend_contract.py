@@ -36,12 +36,12 @@ class FrontendContractTests(unittest.TestCase):
     def test_calibrated_r4_is_the_default_ranking(self):
         self.assertNotIn('id="methodology"', UI)
         self.assertIn("Green = 100 · Kalibrierung D", UI)
-        self.assertIn("0.8.1", UI)
+        self.assertIn("0.8.2", UI)
 
     def test_assets_are_cache_busted(self):
         index = (ROOT / "smartdomo_benchmark" / "app" / "index.html").read_text()
-        self.assertIn("ui.js?v=0.8.1", index)
-        self.assertIn("style.css?v=0.8.1", index)
+        self.assertIn("ui.js?v=0.8.2", index)
+        self.assertIn("style.css?v=0.8.2", index)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ CURRENT_CONTRACT = scoring_r4
 CONTRACTS = {
     scoring_r4.METHODOLOGY_ID: scoring_r4,
 }
-COMPATIBLE_VERSIONS = ('0.7.0', '0.8.0', '0.8.1')
+COMPATIBLE_VERSIONS = ('0.7.0', '0.8.0', '0.8.1', '0.8.2')
 SYSTEM_TEXT = ('architecture', 'cpu_model', 'home_assistant', 'operating_system', 'supervisor', 'machine', 'storage_type')
 SYSTEM_NUMBERS = ('logical_cpus', 'memory_total_mib', 'storage_size_gb')
 

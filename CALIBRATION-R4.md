@@ -65,5 +65,5 @@ than hidden and should be revisited when more controlled Green series are availa
 ## Comparability boundary
 
 Only results with the same methodology ID, calibration ID and profile are comparable. App version
-0.8.1 can calculate calibrated indices from raw R4 candidate
+0.8.2 can calculate calibrated indices from raw R4 candidate
 runs produced by 0.7.0 because the workload and engine identifiers are unchanged.

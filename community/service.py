@@ -153,7 +153,7 @@ def application(env, start_response):
             with db() as conn:
                 conn.execute('SELECT 1 FROM entries LIMIT 1').fetchone()
             result = {
-                'ok': True, 'version': '0.8.1',
+                'ok': True, 'version': '0.8.2',
                 'methodology_id': CURRENT_CONTRACT.METHODOLOGY_ID,
                 'calibration': CURRENT_CONTRACT.CALIBRATION['calibration'],
                 'methodologies': [

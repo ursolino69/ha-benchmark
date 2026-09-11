@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2
+
+- Methodik-Seite sprachlich vollständig überarbeitet und mit der Implementierung abgeglichen
+- State Changes korrekt als synthetische `state_changed`-Events mit frischen `old_state`-/`new_state`-Objekten beschrieben
+- Abgrenzung gegenüber echtem Zustandsautomaten, vollständigen Automationen, Recorder und Websocket-Updates ergänzt
+- Aussagekraft und Grenzen von Event-Bus-, Mehrprozess-, SQLite- und API-Messung präzisiert
+- Erfassung von Temperatur, Leistung, Energie und Linux PSI technisch korrekt erläutert
+- Englische Methodik parallel überarbeitet
+
 ## 0.8.1
 
 - Veraltete R4-Kalibrierungswarnung aus zwischengespeichertem 0.7.0-Frontend behoben

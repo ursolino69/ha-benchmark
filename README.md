@@ -7,7 +7,7 @@ Home-Assistant-specific workloads instead of relying on generic CPU or disk benc
 be kept locally or, after an exact data preview and explicit consent, published anonymously to the
 public [Share & Compare](https://benchmark.smartdomo.de) ranking.
 
-**Current release:** 0.8.1  
+**Current release:** 0.8.2  
 **Methodology:** calibrated R4  
 **Supported architectures:** aarch64 and amd64  
 **License:** [MIT](LICENSE)  
@@ -151,6 +151,6 @@ reference calibration.
 
 ## Project status
 
-Version 0.8.1 is calibrated with five controlled Home Assistant Green runs for each profile. The
+Version 0.8.2 is calibrated with five controlled Home Assistant Green runs for each profile. The
 frozen reference is `GREEN-CORE-2026-09-D`; its source runs, medians, dispersion and limitations are
 published in the [R4 calibration report](CALIBRATION-R4.md).

@@ -1,4 +1,4 @@
-# Benchmark-Methodik R4 · App-Version 0.8.1
+# Benchmark-Methodik R4 · App-Version 0.8.2
 
 ## Status
 
@@ -14,7 +14,8 @@ Zielsystemen. Nur der API-Test fragt die laufende Home-Assistant-Instanz ab.
 
 Die Methodik vermeidet vier typische Verzerrungen synthetischer Benchmarks:
 
-- State Changes verteilen sich über hunderte Entitäten; jeder Listener-Bestand wird tatsächlich genutzt.
+- State-Events verteilen sich über hunderte Entity-IDs; neben einem übergreifenden Callback werden
+  alle 14 zusätzlich registrierten Entity-Gruppen während des Tests angesprochen.
 - Events, Zustände und Attribute ändern sich statt dass dasselbe Objekt tausendfach wiederholt wird.
 - Entity-Prüfungen verwenden 80 % wiederkehrende und 20 % neue IDs statt nahezu reiner Cache-Treffer.
 - Eine getrennte Prozesslast macht verfügbare Mehrkern-Kapazität sichtbar.
@@ -58,11 +59,17 @@ Produktivsystem laufen. Full erzeugt deutlich höhere Last und ist ausschließli
 
 ## Testdetails
 
-### Events und Zustände
+### Core Events und State Changes
 
-Erzeugung und vollständige Verarbeitung liegen innerhalb der Messzeit. Regelmäßige
-`async_block_till_done`-Grenzen verhindern unrealistisch große Warteschlangen. State Changes rotieren
-über den gesamten Entity-Bestand und erzeugen je Ereignis neue `old_state`- und `new_state`-Objekte.
+Core Events misst einen isolierten HA-Event-Bus mit acht Ereignistypen und jeweils einem Callback.
+Erzeugung und Callback-Verarbeitung liegen innerhalb der Messzeit. Regelmäßige
+`async_block_till_done`-Grenzen begrenzen die Warteschlange.
+
+State Changes erzeugt synthetische `state_changed`-Events für den gesamten Entity-Bestand. Zu jedem
+Event gehören zwei neu angelegte State-Objekte: `old_state` repräsentiert den vorherigen und
+`new_state` den neuen Zustand. Ein Callback überwacht alle Entity-IDs; 14 kleinere Gruppen führen
+zusätzlich typische Zustands- und Attributzugriffe aus. Der Test verwendet nicht den echten
+HA-Zustandsautomaten und aktiviert weder Recorder noch WebSocket-Updates oder vollständige Automationen.
 
 ### Entity-Verarbeitung und JSON
 
@@ -79,17 +86,26 @@ selbst mehrere Kerne parallel nutzt.
 
 ### Recorder-Speicher
 
-SQLite verwendet `journal_mode=WAL`, `synchronous=FULL` und deaktivierte automatische Checkpoints.
+Auf dem App-Datenlaufwerk wird eine temporäre SQLite-Datenbank mit State-ähnlichen Datensätzen und
+einem Index angelegt. SQLite verwendet `journal_mode=WAL`, `synchronous=FULL` und deaktivierte automatische Checkpoints.
 Der Speicherindex setzt sich nach der Kalibrierung aus Commit-p95 (40 %), Schreibdurchsatz (25 %),
 Random-Read-p95 (20 %) und WAL-Checkpoint (15 %) zusammen. Cache-Freigabe wird per
 `POSIX_FADV_DONTNEED` angefordert, garantiert aber keine physisch kalten Zugriffe. Haltbarkeit und
-Stromausfallsicherheit werden nicht geprüft.
+Stromausfallsicherheit werden nicht geprüft. Die Arbeitslast ist Recorder-nah, führt aber nicht Home
+Assistants tatsächlichen Recorder aus.
+
+### HA API
+
+Der API-Test misst als einzige Kategorie die laufende Home-Assistant-Instanz. Er verwendet den Median
+aus 10 beziehungsweise 30 authentifizierten Core-API-Aufrufen aus dem App-Container. Gemessen werden
+Core-Antwortzeit und lokaler Supervisor-/Container-Netzwerkpfad gemeinsam.
 
 ## Diagnosewerte
 
-Temperatur, Leistung, Energie und Linux Pressure Stall Information (PSI) sind reine Informationen und
-gehen nicht in den Index ein. PSI misst blockierte Zeit wegen CPU-, Speicher- oder I/O-Druck und ist
-keine Auslastungsanzeige.
+Temperatur, elektrische Leistungsaufnahme, Energie und Linux Pressure Stall Information (PSI) sind reine Informationen und
+gehen nicht in den Index ein. Der Energieverbrauch wird aus den während des Laufs erfassten
+Leistungswerten angenähert. PSI misst Wartezeit wegen fehlender CPU-Zeit, Arbeitsspeicher- oder
+I/O-Ressourcen und ist keine normale Auslastungsanzeige.
 
 ## Kalibrierungsprotokoll
 

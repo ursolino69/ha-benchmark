@@ -1,4 +1,4 @@
-# HA Benchmark 0.8.1
+# HA Benchmark 0.8.2
 
 ## Deutsch
 

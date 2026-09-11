@@ -1,11 +1,11 @@
-# Deployment 0.8.1 · calibrated R4
+# Deployment 0.8.2 · calibrated R4
 
 ## 1. Community service on the prepared VPS
 
 On Windows, place the release ZIP in Downloads and upload it:
 
 ```powershell
-scp "$env:USERPROFILE\Downloads\smartdomo-ha-benchmark-v0.8.1.zip" root@217.154.22.176:/root/
+scp "$env:USERPROFILE\Downloads\smartdomo-ha-benchmark-v0.8.2.zip" root@217.154.22.176:/root/
 ssh root@217.154.22.176
 ```
 
@@ -13,9 +13,9 @@ Then run on the VPS:
 
 ```bash
 apt-get update && apt-get install -y unzip
-mkdir -p /root/ha-benchmark-0.8.1
-unzip -q -o /root/smartdomo-ha-benchmark-v0.8.1.zip -d /root/ha-benchmark-0.8.1
-bash /root/ha-benchmark-0.8.1/smartdomo-ha-benchmark/install-community.sh
+mkdir -p /root/ha-benchmark-0.8.2
+unzip -q -o /root/smartdomo-ha-benchmark-v0.8.2.zip -d /root/ha-benchmark-0.8.2
+bash /root/ha-benchmark-0.8.2/smartdomo-ha-benchmark/install-community.sh
 ```
 
 On the first installation the installer asks for operator/company name, complete service address and
@@ -43,7 +43,7 @@ not edit `000-default.conf`, port 5001, or the existing `/ha-dashboard` mapping.
 
 Publish the repository contents through the existing custom app repository, or copy the complete
 `smartdomo_benchmark` directory into the HAOS local apps/add-ons directory. Refresh the App Store,
-install/update **HA Benchmark 0.8.1**, and restart the app.
+install/update **HA Benchmark 0.8.2**, and restart the app.
 
 Before the first run, review every option on the **Configuration** tab. For a normal Green test,
 select the actual storage type and size. Leave Full disabled on production systems. Temperature and
@@ -64,5 +64,5 @@ power entities are optional and never affect the index.
 
 ## Important boundary
 
-Version 0.8.1 uses R4 calibration `GREEN-CORE-2026-09-D`. Older public entries are removed during
+Version 0.8.2 uses R4 calibration `GREEN-CORE-2026-09-D`. Older public entries are removed during
 the service update. Community data remains user-submitted and not hardware-attested.
